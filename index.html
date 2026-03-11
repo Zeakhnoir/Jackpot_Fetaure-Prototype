@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vault of Fortune — Jackpot Feature</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Cinzel+Decorative:wght@700;900&family=Raleway:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #080510;
+  --panel: #0f0c1a;
+  --gold: #d4a843;
+  --gold2: #8a6a1e;
+  --gold-light: #f0c96a;
+  --cream: #f0e8d8;
+  --border: rgba(212,168,67,0.25);
+
+  --mini-col: #c084fc;
+  --minor-col: #4ade80;
+  --major-col: #60a5fa;
+  --grand-col: #f87171;
+
+  --chest-col: #d97706;
+  --wild-col: #fbbf24;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  font-family: 'Raleway', sans-serif;
+  color: var(--cream);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-x: hidden;
+}
+
+/* Ambient BG */
+body::before {
+  content: '';
+  position: fixed; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(212,168,67,0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 40% at 10% 50%, rgba(192,132,252,0.04) 0%, transparent 50%),
+    radial-gradient(ellipse 40% 40% at 90% 50%, rgba(248,113,113,0.04) 0%, transparent 50%);
+}
+
+/* ══ WRAPPER ══ */
+.game-wrap {
+  position: relative; z-index: 1;
+  width: min(780px, 99vw);
+  padding: 12px 10px 24px;
+}
+
+/* ══ TITLE ══ */
+.title-block { text-align: center; margin-bottom: 16px; }
+.title-eyebrow {
+  font-family: 'Raleway', sans-serif;
+  font-size: 0.55rem; letter-spacing: 0.6em;
+  color: rgba(212,168,67,0.5); text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.title-main {
+  font-family: 'Cinzel Decorative', serif;
+  font-size: clamp(1.2rem, 4.5vw, 2.2rem);
+  font-weight: 900;
+  background: linear-gradient(135deg, #8a6a1e 0%, #d4a843 35%, #f0c96a 50%, #d4a843 65%, #8a6a1e 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  letter-spacing: 0.06em; line-height: 1.1;
+  filter: drop-shadow(0 2px 12px rgba(212,168,67,0.35));
+}
+.title-sub {
+  font-family: 'Cinzel', serif;
+  font-size: 0.62rem; letter-spacing: 0.4em;
+  color: rgba(212,168,67,0.38); margin-top: 3px;
+}
+
+/* ══ MACHINE SHELL ══ */
+.machine {
+  background: linear-gradient(175deg, #130d20 0%, #0c0916 50%, #10091a 100%);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 16px 16px 18px;
+  box-shadow:
+    0 0 0 1px rgba(212,168,67,0.08),
+    0 20px 100px rgba(0,0,0,0.95),
+    inset 0 1px 0 rgba(212,168,67,0.15),
+    inset 0 -1px 0 rgba(0,0,0,0.5);
+}
+
+/* ══ JACKPOT METERS ══ */
+.jp-row {
+  display: grid; grid-template-columns: repeat(4,1fr); gap: 8px;
+  margin-bottom: 14px;
+}
+.jp-meter {
+  border-radius: 12px; padding: 8px 6px 10px;
+  text-align: center; border: 1px solid; position: relative; overflow: hidden;
+  transition: box-shadow 0.4s, transform 0.2s;
+  cursor: default;
+}
+.jp-meter::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+}
+.jp-meter.mini  { background: rgba(192,132,252,0.1); border-color: rgba(192,132,252,0.3); }
+.jp-meter.minor { background: rgba(74,222,128,0.1);  border-color: rgba(74,222,128,0.3); }
+.jp-meter.major { background: rgba(96,165,250,0.1);  border-color: rgba(96,165,250,0.3); }
+.jp-meter.grand { background: rgba(248,113,113,0.1); border-color: rgba(248,113,113,0.4); }
+
+.jp-meter.pulsing { animation: meterPulse 0.8s ease-in-out infinite alternate; }
+.jp-meter.mini.pulsing  { box-shadow: 0 0 20px rgba(192,132,252,0.6); }
+.jp-meter.minor.pulsing { box-shadow: 0 0 20px rgba(74,222,128,0.6); }
+.jp-meter.major.pulsing { box-shadow: 0 0 20px rgba(96,165,250,0.6); }
+.jp-meter.grand.pulsing { box-shadow: 0 0 20px rgba(248,113,113,0.7); }
+
+@keyframes meterPulse { from { transform: scale(1); } to { transform: scale(1.03); } }
+
+.jp-meter.winning { animation: jpWin 0.5s ease-in-out 4 alternate; }
+@keyframes jpWin {
+  from { transform: scale(1); }
+  to   { transform: scale(1.06); filter: brightness(1.5); }
+}
+
+.jp-label { font-size: 0.5rem; letter-spacing: 0.28em; text-transform: uppercase; opacity: 0.55; }
+.jp-payout {
+  font-family: 'Cinzel', serif; font-weight: 700;
+  font-size: clamp(0.7rem, 1.8vw, 0.92rem);
+  margin: 2px 0 5px;
+}
+.jp-meter.mini  .jp-payout { color: var(--mini-col); }
+.jp-meter.minor .jp-payout { color: var(--minor-col); }
+.jp-meter.major .jp-payout { color: var(--major-col); }
+.jp-meter.grand .jp-payout { color: var(--grand-col); }
+
+.jp-gems { display: flex; justify-content: center; gap: 4px; min-height: 18px; align-items: center; }
+.gem-slot {
+  width: 14px; height: 14px; border-radius: 50%;
+  border: 1px solid;
+  transition: all 0.35s cubic-bezier(0.34,1.56,0.64,1);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0; /* empty slot */
+}
+.gem-slot.mini  { border-color: rgba(192,132,252,0.4); background: rgba(192,132,252,0.08); }
+.gem-slot.minor { border-color: rgba(74,222,128,0.4);  background: rgba(74,222,128,0.08); }
+.gem-slot.major { border-color: rgba(96,165,250,0.4);  background: rgba(96,165,250,0.08); }
+.gem-slot.grand { border-color: rgba(248,113,113,0.4); background: rgba(248,113,113,0.08); }
+
+.gem-slot.filled.mini  { background: var(--mini-col);  border-color: var(--mini-col);  box-shadow: 0 0 8px rgba(192,132,252,0.7); transform: scale(1.2); }
+.gem-slot.filled.minor { background: var(--minor-col); border-color: var(--minor-col); box-shadow: 0 0 8px rgba(74,222,128,0.7);  transform: scale(1.2); }
+.gem-slot.filled.major { background: var(--major-col); border-color: var(--major-col); box-shadow: 0 0 8px rgba(96,165,250,0.7);  transform: scale(1.2); }
+.gem-slot.filled.grand { background: var(--grand-col); border-color: var(--grand-col); box-shadow: 0 0 8px rgba(248,113,113,0.7); transform: scale(1.2); }
+
+.gem-slot.last-empty { animation: slotPulse 1s ease infinite alternate; }
+.gem-slot.last-empty.mini  { border-color: rgba(192,132,252,0.9); }
+.gem-slot.last-empty.minor { border-color: rgba(74,222,128,0.9); }
+.gem-slot.last-empty.major { border-color: rgba(96,165,250,0.9); }
+.gem-slot.last-empty.grand { border-color: rgba(248,113,113,0.9); }
+@keyframes slotPulse { from { opacity:0.4; } to { opacity:1; } }
+
+/* ══ INFO BAR ══ */
+.info-bar {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap;
+}
+.badge {
+  padding: 5px 14px; border-radius: 20px; font-size: 0.68rem;
+  letter-spacing: 0.12em; font-weight: 700;
+}
+.badge-spins {
+  background: rgba(212,168,67,0.12); border: 1px solid rgba(212,168,67,0.35);
+  color: var(--gold-light);
+}
+.badge-spins .num { font-family: 'Cinzel', serif; font-size: 1.05rem; color: var(--gold); }
+.badge-win {
+  background: rgba(74,222,128,0.08); border: 1px solid rgba(74,222,128,0.25);
+  color: rgba(74,222,128,0.8);
+}
+.badge-win .num { font-family: 'Cinzel', serif; font-size: 1.0rem; color: #4ade80; }
+.badge-bet {
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+  color: rgba(240,232,216,0.6);
+  margin-left: auto;
+}
+
+/* ══ REEL WINDOW ══ */
+.reel-window {
+  background: #05030d;
+  border: 1px solid rgba(212,168,67,0.18);
+  border-radius: 14px;
+  padding: 10px;
+  margin-bottom: 12px;
+  position: relative;
+  box-shadow: inset 0 8px 40px rgba(0,0,0,0.95), inset 0 0 0 1px rgba(255,255,255,0.02);
+}
+
+/* scan lines */
+.reel-window::after {
+  content: ''; position: absolute; inset: 0; border-radius: 13px; pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent, transparent 3px,
+    rgba(0,0,0,0.05) 3px, rgba(0,0,0,0.05) 4px
+  );
+}
+
+/* Reel separators */
+.reel-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 6px;
+}
+
+/* ══ CELLS ══ */
+.cell {
+  aspect-ratio: 1;
+  border-radius: 10px;
+  background: linear-gradient(145deg, #0d0820, #090515);
+  border: 1px solid rgba(255,255,255,0.06);
+  display: flex; align-items: center; justify-content: center;
+  font-size: clamp(1.5rem, 3.2vw, 2.1rem);
+  position: relative; overflow: hidden;
+  transition: border-color 0.2s, background 0.2s;
+  user-select: none;
+}
+.cell::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 40%;
+  background: linear-gradient(to bottom, rgba(255,255,255,0.04), transparent);
+  pointer-events: none;
+}
+
+.cell.spinning { animation: spinFlicker 0.09s linear infinite; }
+@keyframes spinFlicker {
+  0%   { opacity: 0.7; }
+  50%  { opacity: 0.95; }
+  100% { opacity: 0.7; }
+}
+
+.cell.landed { animation: cellLand 0.28s cubic-bezier(0.34,1.56,0.64,1); }
+@keyframes cellLand {
+  0%   { transform: scale(0.65) translateY(-6px); opacity: 0.4; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.cell.is-chest {
+  background: linear-gradient(145deg, rgba(217,119,6,0.2), rgba(217,119,6,0.07));
+  border-color: rgba(217,119,6,0.6);
+  box-shadow: 0 0 12px rgba(217,119,6,0.25), inset 0 0 12px rgba(217,119,6,0.1);
+}
+.cell.is-wild {
+  background: linear-gradient(145deg, rgba(251,191,36,0.18), rgba(251,191,36,0.05));
+  border-color: rgba(251,191,36,0.45);
+  box-shadow: 0 0 10px rgba(251,191,36,0.2);
+}
+
+/* ══ BOTTOM CONTROLS ══ */
+.controls-area {
+  display: flex; gap: 8px; align-items: stretch; margin-bottom: 10px;
+}
+.bet-group { display: flex; align-items: center; gap: 5px; }
+.btn-adj {
+  background: rgba(212,168,67,0.08); border: 1px solid rgba(212,168,67,0.22);
+  color: var(--gold); padding: 0 15px; border-radius: 9px;
+  font-family: 'Raleway', sans-serif; font-size: 1rem; font-weight: 700;
+  cursor: pointer; transition: all 0.12s; min-height: 50px;
+}
+.btn-adj:hover { background: rgba(212,168,67,0.18); border-color: var(--gold); }
+.btn-adj:active { transform: scale(0.93); }
+.btn-adj:disabled { opacity: 0.3; cursor: not-allowed; }
+.bet-display {
+  font-family: 'Cinzel', serif; font-size: 1.1rem; color: var(--cream);
+  min-width: 56px; text-align: center;
+  background: rgba(0,0,0,0.55); border: 1px solid rgba(212,168,67,0.15);
+  border-radius: 8px; padding: 8px 12px;
+}
+
+.buy-btn {
+  flex: 1; min-height: 50px;
+  background: linear-gradient(135deg, #7c1a1a 0%, #b91c1c 45%, #dc2626 55%, #7c1a1a 100%);
+  border: 1px solid rgba(220,38,38,0.65);
+  border-radius: 12px;
+  font-family: 'Cinzel', serif; font-size: 1rem; font-weight: 700;
+  color: var(--cream); letter-spacing: 0.08em;
+  cursor: pointer;
+  box-shadow: 0 4px 0 #3a0808, 0 0 24px rgba(185,28,28,0.35);
+  transition: all 0.12s; position: relative; overflow: hidden;
+}
+.buy-btn::before {
+  content: ''; position: absolute; top: 0; left: -130%; width: 60%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+  transform: skewX(-20deg); transition: left 0.5s;
+}
+.buy-btn:hover::before { left: 170%; }
+.buy-btn:hover { box-shadow: 0 4px 0 #3a0808, 0 0 35px rgba(185,28,28,0.6); }
+.buy-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #3a0808; }
+.buy-btn:disabled {
+  background: linear-gradient(135deg, #1a0e0e, #220e0e);
+  color: rgba(240,232,216,0.2); cursor: not-allowed; box-shadow: none;
+}
+
+/* ══ MESSAGE BAR ══ */
+.msg-bar {
+  text-align: center; min-height: 30px; padding: 5px 10px;
+  font-size: 0.78rem; letter-spacing: 0.1em;
+  border-radius: 8px; transition: all 0.25s; text-transform: uppercase;
+  font-weight: 600;
+}
+.msg-bar.info   { color: rgba(212,168,67,0.5); }
+.msg-bar.win    { color: #4ade80; background: rgba(74,222,128,0.06); }
+.msg-bar.gold   { color: var(--gold); background: rgba(212,168,67,0.07); animation: blink 0.6s ease infinite alternate; }
+.msg-bar.jackpot { color: #f87171; background: rgba(248,113,113,0.08); animation: blink 0.4s ease infinite alternate; }
+.msg-bar.idle   { color: rgba(212,168,67,0.4); }
+@keyframes blink { from { opacity:0.7; } to { opacity:1; } }
+
+/* ══ CHEST MODAL ══ */
+.modal-bg {
+  position: fixed; inset: 0; z-index: 500;
+  background: rgba(4,2,10,0.35);
+  display: none; align-items: center; justify-content: center;
+  pointer-events: none;
+}
+.modal-bg.open { pointer-events: auto; }
+.modal-bg.open { display: flex; }
+
+.chest-modal {
+  background: linear-gradient(160deg, #221240, #160e28);
+  border: 1px solid rgba(217,119,6,0.55);
+  border-radius: 20px;
+  padding: 28px 24px 24px;
+  max-width: 380px; width: 90%;
+  text-align: center;
+  box-shadow: 0 0 80px rgba(217,119,6,0.4), 0 0 0 1px rgba(217,119,6,0.15), 0 20px 60px rgba(0,0,0,0.9);
+  position: relative; overflow: hidden;
+}
+.chest-modal::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(217,119,6,0.6), transparent);
+}
+
+.cm-header {
+  font-family: 'Cinzel', serif; font-size: 0.6rem; letter-spacing: 0.4em;
+  color: rgba(217,119,6,0.5); text-transform: uppercase; margin-bottom: 12px;
+}
+.cm-icon {
+  font-size: 4rem; display: block; margin: 0 auto 8px;
+  animation: iconPop 0.5s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes iconPop {
+  0%   { transform: scale(0.3) rotate(-20deg); opacity: 0; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+.cm-label {
+  font-family: 'Cinzel', serif; font-size: 1.2rem; font-weight: 700;
+  color: var(--gold); letter-spacing: 0.06em; margin-bottom: 4px;
+}
+.cm-label.jp    { color: #f87171; animation: blink 0.45s ease infinite alternate; }
+.cm-label.fs    { color: #4ade80; }
+.cm-label.pay   { color: var(--gold-light); }
+.cm-label.gem   { color: #c084fc; }
+.cm-sub {
+  font-size: 0.6rem; letter-spacing: 0.3em; color: rgba(212,168,67,0.35);
+  text-transform: uppercase; margin-top: 8px;
+}
+
+/* ══ SUMMARY MODAL ══ */
+.summary-bg {
+  position: fixed; inset: 0; z-index: 600;
+  background: rgba(4,2,10,0.55); backdrop-filter: blur(3px);
+  display: none; align-items: center; justify-content: center;
+}
+.summary-bg.open { display: flex; }
+
+.summary-modal {
+  background: linear-gradient(160deg, #190e2a, #0e0b1a);
+  border: 1px solid rgba(212,168,67,0.4);
+  border-radius: 22px;
+  padding: 30px 26px 26px;
+  max-width: 420px; width: 92%;
+  text-align: center;
+  box-shadow: 0 0 90px rgba(212,168,67,0.2), 0 0 0 1px rgba(212,168,67,0.1);
+  position: relative; overflow: hidden;
+  animation: modalIn 0.5s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes modalIn {
+  from { transform: scale(0.8) translateY(20px); opacity: 0; }
+  to   { transform: scale(1) translateY(0); opacity: 1; }
+}
+.summary-modal::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(212,168,67,0.55), transparent);
+}
+
+.sm-title { font-family: 'Cinzel Decorative', serif; font-size: 1.3rem; color: var(--gold); margin-bottom: 2px; }
+.sm-eyebrow { font-size: 0.55rem; letter-spacing: 0.45em; color: rgba(212,168,67,0.35); text-transform: uppercase; margin-bottom: 22px; }
+
+.sm-table { width: 100%; border-collapse: collapse; margin-bottom: 16px; text-align: left; }
+.sm-table tr { border-bottom: 1px solid rgba(255,255,255,0.04); }
+.sm-table tr:last-child { border-bottom: none; }
+.sm-table td { padding: 8px 4px; font-size: 0.82rem; }
+.sm-table .lbl { color: rgba(240,232,216,0.5); }
+.sm-table .val { text-align: right; font-weight: 700; }
+.sm-table .val.pos { color: #4ade80; }
+.sm-table .val.neg { color: #f87171; }
+.sm-table .val.gold { color: var(--gold); }
+.sm-table .val.jp-val { color: var(--grand-col); font-family: 'Cinzel', serif; }
+.sm-table tr.highlight td { background: rgba(212,168,67,0.06); border-radius: 6px; }
+.sm-table tr.jp-row td { background: rgba(248,113,113,0.06); }
+
+.profit-display {
+  font-family: 'Cinzel Decorative', serif; font-size: 1.6rem; font-weight: 700;
+  padding: 14px; border-radius: 14px; border: 1px solid; margin-bottom: 20px;
+}
+.profit-display.up   { color: #4ade80; border-color: rgba(74,222,128,0.35); background: rgba(74,222,128,0.08); }
+.profit-display.down { color: #f87171; border-color: rgba(248,113,113,0.35); background: rgba(248,113,113,0.08); }
+.profit-display.even { color: var(--gold); border-color: rgba(212,168,67,0.3); background: rgba(212,168,67,0.07); }
+
+.play-again-btn {
+  width: 100%; padding: 16px;
+  background: linear-gradient(135deg, #7c1a1a 0%, #b91c1c 45%, #dc2626 55%, #7c1a1a 100%);
+  border: 1px solid rgba(220,38,38,0.65);
+  border-radius: 12px;
+  font-family: 'Cinzel', serif; font-size: 1.05rem; font-weight: 700;
+  color: var(--cream); letter-spacing: 0.1em; cursor: pointer;
+  box-shadow: 0 4px 0 #3a0808, 0 0 22px rgba(185,28,28,0.3);
+  transition: all 0.12s;
+}
+.play-again-btn:hover { box-shadow: 0 4px 0 #3a0808, 0 0 35px rgba(185,28,28,0.6); }
+.play-again-btn:active { transform: translateY(3px); }
+.play-again-btn:disabled {
+  background: rgba(30,20,30,0.8); color: rgba(240,232,216,0.2);
+  cursor: not-allowed; box-shadow: none;
+}
+
+/* ══ FLASH ══ */
+.flash-layer {
+  position: fixed; inset: 0; z-index: 700;
+  pointer-events: none; opacity: 0;
+}
+.flash-layer.gold-flash { animation: flashGold 0.5s ease-out forwards; }
+.flash-layer.red-flash  { animation: flashRed  0.5s ease-out forwards; }
+@keyframes flashGold {
+  0%   { opacity: 0; background: rgba(212,168,67,0.12); }
+  30%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes flashRed {
+  0%   { opacity: 0; background: rgba(220,38,38,0.2); }
+  30%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* ══ SYMBOL LEGEND ══ */
+.legend {
+  display: grid; grid-template-columns: repeat(5,1fr); gap: 4px;
+  margin-top: 12px; padding: 8px;
+  background: rgba(0,0,0,0.35); border: 1px solid rgba(212,168,67,0.07);
+  border-radius: 8px;
+}
+.leg-item { text-align: center; font-size: 0.5rem; color: rgba(240,232,216,0.3); letter-spacing: 0.04em; }
+.leg-item .sym { display: block; font-size: 1rem; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+
+<div class="game-wrap">
+
+  <!-- TITLE -->
+  <div class="title-block">
+    <div class="title-eyebrow">Jackpot Feature · Free Spin Bonus</div>
+    <div class="title-main">VAULT OF FORTUNE</div>
+    <div class="title-sub">Collect · Open · Win</div>
+  </div>
+
+  <div class="machine">
+
+    <!-- JACKPOT METERS -->
+    <div class="jp-row">
+      <div class="jp-meter mini"  id="jpm-mini">
+        <div class="jp-label">Mini</div>
+        <div class="jp-payout">10× Bet</div>
+        <div class="jp-gems" id="gems-mini"></div>
+      </div>
+      <div class="jp-meter minor" id="jpm-minor">
+        <div class="jp-label">Minor</div>
+        <div class="jp-payout">35× Bet</div>
+        <div class="jp-gems" id="gems-minor"></div>
+      </div>
+      <div class="jp-meter major" id="jpm-major">
+        <div class="jp-label">Major</div>
+        <div class="jp-payout">225× Bet</div>
+        <div class="jp-gems" id="gems-major"></div>
+      </div>
+      <div class="jp-meter grand" id="jpm-grand">
+        <div class="jp-label">Grand</div>
+        <div class="jp-payout">2000× Bet</div>
+        <div class="jp-gems" id="gems-grand"></div>
+      </div>
+    </div>
+
+    <!-- INFO BAR -->
+    <div class="info-bar">
+      <div class="badge badge-spins">
+        🎰 Spins Left: <span class="num" id="fs-counter">—</span>
+      </div>
+      <div class="badge badge-win">
+        💰 Feature Win: <span class="num" id="feat-win">0.00</span>
+      </div>
+      <div class="badge badge-bet">
+        Bet: <strong id="bet-display">10</strong>
+        &nbsp;|&nbsp; Balance: <strong id="bal-display">100000</strong>
+      </div>
+    </div>
+
+    <!-- REEL WINDOW -->
+    <div class="reel-window">
+      <div class="reel-grid" id="reel-grid"></div>
+    </div>
+
+    <!-- CONTROLS -->
+    <div class="controls-area">
+      <div class="bet-group">
+        <button class="btn-adj" id="btn-dn">−</button>
+        <div class="bet-display" id="bet-val">10</div>
+        <button class="btn-adj" id="btn-up">+</button>
+      </div>
+      <button class="buy-btn" id="buy-btn">
+        ◆ BUY FEATURE &nbsp;·&nbsp; Cost: <span id="buy-cost">250</span>
+      </button>
+    </div>
+
+    <!-- MESSAGE -->
+    <div class="msg-bar idle" id="msg-bar">
+      Set your bet · Buy 8 Free Spins for 25× your bet · Collect diamonds to win jackpots
+    </div>
+
+    <!-- LEGEND -->
+    <div class="legend">
+      <div class="leg-item"><span class="sym">👑</span>Crown</div>
+      <div class="leg-item"><span class="sym">🧭</span>Compass</div>
+      <div class="leg-item"><span class="sym">🗿</span>Idol</div>
+      <div class="leg-item"><span class="sym">🪲</span>Scarab</div>
+      <div class="leg-item"><span class="sym">💍</span>Ring</div>
+      <div class="leg-item"><span class="sym">📜</span>Scroll</div>
+      <div class="leg-item"><span class="sym">🏮</span>Lantern</div>
+      <div class="leg-item"><span class="sym">🗝️</span>Key</div>
+      <div class="leg-item"><span class="sym">👝</span>Pouch</div>
+      <div class="leg-item"><span class="sym">🗺️</span>Map</div>
+      <div class="leg-item"><span class="sym">⚡</span>Wild</div>
+      <div class="leg-item"><span class="sym">—</span>—</div>
+      <div class="leg-item"><span class="sym">—</span>—</div>
+      <div class="leg-item"><span class="sym">—</span>—</div>
+      <div class="leg-item"><span class="sym">📦</span>Chest</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- CHEST MODAL -->
+<div class="modal-bg" id="chest-modal-bg">
+  <div class="chest-modal">
+    <div class="cm-header" id="cm-header">Opening Treasure Chest</div>
+    <span class="cm-icon" id="cm-icon">📦</span>
+    <div class="cm-label" id="cm-label"></div>
+    <div class="cm-sub" id="cm-sub"></div>
+  </div>
+</div>
+
+<!-- SUMMARY MODAL -->
+<div class="summary-bg" id="summary-bg">
+  <div class="summary-modal">
+    <div class="sm-title">Feature Complete!</div>
+    <div class="sm-eyebrow">Round Summary</div>
+    <table class="sm-table" id="sm-table"></table>
+    <div class="profit-display" id="profit-display"></div>
+    <button class="play-again-btn" id="play-again-btn">◆ Play Again</button>
+  </div>
+</div>
+
+<div class="flash-layer" id="flash-layer"></div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// SYMBOL MAP
+// ═══════════════════════════════════════════════════
+const SYM = {
+  0:'👑', 1:'🧭', 2:'🗿', 3:'🪲', 4:'💍',
+  5:'📜', 6:'🏮', 7:'🗝️', 8:'👝', 9:'🗺️',
+  10:'⚡', 14:'📦'
+};
+
+// ═══════════════════════════════════════════════════
+// REELS (from Python simulation)
+// ═══════════════════════════════════════════════════
+const REEL1 = [14,9,9,9,9,9,7,7,7,7,7,14,9,8,8,6,5,5,8,14,1,5,7,4,7,9,8,8,7,5,7,4,1,14,9,4,6,2,14,5,2,8,6,14,6,8,8,5,14,4,7,0,5,7,6,6,4,7,5,3,5,9,7,9,2,6,2,9,7,9,7,6,1,3,3,3,3,3,3,3,3,5,8,5,5,14,7,8,1,7,1,9,7,14,7,3,3,5,14,7,6,6,6,6,6,0,3,0,8,0,5,5,5,5,5,5,9,8,5,6,8,8,5,7,1,9,9,9,6,2,7,14,9,7,5,8,14,9,5,7,5,6,1,1,1,1,1,1,6,4,7,2,4,7,5,5,2,7,1,8,5,9,7,4,4,4,4,4,4,6,6,9,14,6,6,6,6,14,7,6,9,14,6,9,2,8,14,2,9,2,14,8,8,5,9,3,9,4,9,14,4,7,8,7,14,9,2,8,7,14,5,8,6,4,5,14,6,5,7,2,5,8,8,6,3,5,6,7,6,9,3,9,5,7,8,6,7,9,9,5,5,6,8,8,8,8,8,9,5,9,1,5,7,8,2,8,7,6,5,2,1,9,2,7,6,14,2,2,2,2,2,9,9,9,9,14,7,7,4,6,14,9,6,4,8,14,7,3,8,8,4,9,7,6,7,8,6,1,7,7,2,9,2,0,8,5,6,6,9,9,14,8,8,8,8,14,8,9,7,6,14,0,6,4,14,9,3,14,6,8,5,6,0,14,5,5,8,6,2,7,4,9,7,5,8,5,6,4,9,6];
+const REEL2 = [1,1,1,1,1,1,8,14,5,8,5,7,5,9,14,10,5,6,14,10,2,8,9,7,14,7,7,6,8,2,14,9,6,5,6,10,7,5,0,8,14,9,9,6,5,3,8,9,8,9,6,10,6,9,9,5,10,9,1,10,10,7,6,1,6,10,6,4,14,6,6,7,10,14,8,8,8,8,10,8,8,14,10,10,10,10,10,14,5,8,10,6,14,8,5,8,14,9,6,6,10,6,2,4,1,6,3,4,5,9,2,8,9,6,4,9,7,10,9,10,4,8,9,3,3,3,3,3,3,7,8,4,9,10,6,8,3,14,6,8,7,0,7,10,14,6,5,8,7,14,10,9,7,3,14,6,6,6,6,6,8,4,0,9,1,14,6,10,4,4,4,4,4,4,5,0,2,2,2,2,2,7,8,7,5,8,7,8,7,5,5,1,2,0,8,8,9,9,9,9,9,9,9,10,9,7,14,7,7,9,10,10,9,5,9,14,10,10,10,10,10,10,14,3,1,1,10,5,14,2,4,3,7,14,3,9,14,5,2,4,5,6,10,5,8,7,7,6,5,9,6,1,7,8,0,10,9,8,7,7,7,7,7,14,7,10,2,5,6,14,7,0,6,10,9,14,6,3,6,8,10,10,14,5,7,7,1,8,9,14,8,8,5,14,3,2,6,7,14,6,5,5,5,5,5,5,5,10,10,9,0,0,0,0,0,7,6,6,2,10,10,10,8,1,2,5,1,9,5,1,3,10,6,10,2,7,8,5,7,10,10,7,6,7,4,7,4,5,10,4];
+const REELS = [REEL1, REEL2, [...REEL2], [...REEL2], [...REEL2]];
+
+// ═══════════════════════════════════════════════════
+// PAYLINES  (25 lines, 5x3)
+// ═══════════════════════════════════════════════════
+const PAYLINES = [
+  [0,0,0,0,0],[1,1,1,1,1],[2,2,2,2,2],
+  [0,1,2,1,0],[2,1,0,1,2],[0,0,1,0,0],
+  [2,2,1,2,2],[1,0,0,0,1],[1,2,2,2,1],
+  [0,1,1,1,0],[2,1,1,1,2],[1,0,1,2,1],
+  [1,2,1,0,1],[0,1,0,1,0],[2,1,2,1,2],
+  [1,1,0,1,1],[1,1,2,1,1],[0,2,0,2,0],
+  [2,0,2,0,2],[0,2,2,2,0],[2,0,0,0,2],
+  [1,0,2,0,1],[1,2,0,2,1],[0,1,2,2,2],
+  [2,1,0,0,0]
+];
+
+const PAYTABLE = {
+  0:{2:0.11,3:0.57,4:1.14,5:5.68},
+  1:{3:0.23,4:0.57,5:2.84},
+  2:{3:0.23,4:0.57,5:2.84},
+  3:{3:0.23,4:0.57,5:2.27},
+  4:{3:0.23,4:0.57,5:2.27},
+  5:{2:0.11,3:0.23,4:1.70},
+  6:{2:0.11,3:0.23,4:1.14},
+  7:{2:0.11,3:0.23,4:1.14},
+  8:{2:0.11,3:0.23,4:0.57},
+  9:{2:0.11,3:0.23,4:0.57}
+};
+
+// ═══════════════════════════════════════════════════
+// CHEST WEIGHTS (Python BASE_WEIGHTS)
+// ═══════════════════════════════════════════════════
+const BASE_WEIGHTS = {
+  D_RED:16.0, D_BLUE:18.0, D_GREEN:20.0, D_PURPLE:21.0,
+  FS1:9.3, FS2:1.7, FS3:0.9,
+  PAY_0_50:5.0, PAY_0_75:3.0
+};
+
+// [progress_threshold, subtract_amount, shift_to_pay]
+const SUBTRACT_RULES = {
+  D_BLUE:  [4, 16.3, true],
+  D_RED:   [4, 15.75, true],
+  D_GREEN: [3, 15.5,  true]
+};
+
+// ═══════════════════════════════════════════════════
+// JACKPOT CONFIG
+// ═══════════════════════════════════════════════════
+const JP_CONFIG = {
+  mini:  { req:4, pay:10,   color:'mini',  key:'D_PURPLE', gem:'🟣', name:'Mini' },
+  minor: { req:4, pay:35,   color:'minor', key:'D_GREEN',  gem:'🟢', name:'Minor' },
+  major: { req:5, pay:225,  color:'major', key:'D_BLUE',   gem:'🔵', name:'Major' },
+  grand: { req:5, pay:2000, color:'grand', key:'D_RED',    gem:'🔴', name:'Grand' }
+};
+const KEY_TO_TIER = { D_PURPLE:'mini', D_GREEN:'minor', D_BLUE:'major', D_RED:'grand' };
+
+// ═══════════════════════════════════════════════════
+// GAME STATE
+// ═══════════════════════════════════════════════════
+const BETS = [1,2,5,10,20,50,100,200];
+let betIdx = 3; // default 10
+let bet = BETS[betIdx];
+let balance = 100000;
+let inFeature = false;
+let freeSpins = 0;
+let jpProgress = { mini:0, minor:0, major:0, grand:0 };
+let featureCost = 0;
+let featureWin = 0;
+let featureLine = 0;
+let featureDirect = 0;
+let featureJPs = [];
+let featureSpinsGained = 0;
+
+const ROWS = 3, COLS = 5;
+const WILD = 10, CHEST = 14;
+const START_FS = 8;
+const FEATURE_MULT = 25;
+const MAX_FS = 2000;
+
+let cells = []; // [row][col]
+
+// ═══════════════════════════════════════════════════
+// BUILD GRID
+// ═══════════════════════════════════════════════════
+function buildGrid() {
+  const g = document.getElementById('reel-grid');
+  g.innerHTML = '';
+  cells = [];
+  for (let r = 0; r < ROWS; r++) {
+    cells.push([]);
+    for (let c = 0; c < COLS; c++) {
+      const el = document.createElement('div');
+      el.className = 'cell';
+      el.textContent = '?';
+      g.appendChild(el);
+      cells[r].push(el);
+    }
+  }
+}
+
+function setCell(r, c, sid, animate=false) {
+  const el = cells[r][c];
+  el.className = 'cell';
+  el.textContent = SYM[sid] ?? '?';
+  if (sid === CHEST) el.classList.add('is-chest');
+  if (sid === WILD)  el.classList.add('is-wild');
+  if (animate) {
+    el.classList.add('landed');
+    setTimeout(() => el.classList.remove('landed'), 350);
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// REEL SAMPLING
+// ═══════════════════════════════════════════════════
+function sampleWindow() {
+  const w = Array.from({length:ROWS}, () => new Array(COLS).fill(0));
+  for (let c = 0; c < COLS; c++) {
+    const strip = REELS[c];
+    const stop = Math.floor(Math.random() * strip.length);
+    for (let r = 0; r < ROWS; r++) {
+      w[r][c] = strip[(stop + r) % strip.length];
+    }
+  }
+  return w;
+}
+
+// ═══════════════════════════════════════════════════
+// SPIN ANIMATION  (each reel stops sequentially)
+// ═══════════════════════════════════════════════════
+const SPIN_SYMS = [0,1,2,3,4,5,6,7,8,9];
+function rndSym() { return SYM[SPIN_SYMS[Math.floor(Math.random()*SPIN_SYMS.length)]]; }
+
+function animateSpin(finalW) {
+  return new Promise(resolve => {
+    // Start all spinning
+    cells.flat().forEach(el => {
+      el.textContent = rndSym();
+      el.classList.add('spinning');
+    });
+
+    // Spinning ticker
+    const ticker = setInterval(() => {
+      cells.flat().forEach(el => {
+        if (el.classList.contains('spinning')) {
+          el.textContent = rndSym();
+        }
+      });
+    }, 80);
+
+    // Stop reels one by one — generous timing so it's readable
+    const stopDelays = [600, 900, 1200, 1500, 1800];
+    stopDelays.forEach((delay, c) => {
+      setTimeout(() => {
+        for (let r = 0; r < ROWS; r++) {
+          cells[r][c].classList.remove('spinning');
+          setCell(r, c, finalW[r][c], true);
+        }
+        if (c === COLS - 1) {
+          clearInterval(ticker);
+          resolve();
+        }
+      }, delay);
+    });
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// LINE WIN EVALUATION
+// ═══════════════════════════════════════════════════
+function evalLine(symbols) {
+  // Find anchor (first non-wild paying sym)
+  let base = null;
+  for (const sym of symbols) {
+    if (sym === WILD) continue;
+    if (sym in PAYTABLE) { base = sym; break; }
+    return 0;
+  }
+  if (base === null) return 0;
+  let count = 0;
+  for (const sym of symbols) {
+    if (sym === base || sym === WILD) count++;
+    else break;
+  }
+  return PAYTABLE[base][count] ?? 0;
+}
+
+function evalAllLines(w) {
+  let total = 0;
+  for (const pl of PAYLINES) {
+    const syms = pl.map((row, c) => w[row][c]);
+    total += evalLine(syms);
+  }
+  return total;
+}
+
+// ═══════════════════════════════════════════════════
+// CHEST WEIGHT ENGINE
+// ═══════════════════════════════════════════════════
+function computeWeights() {
+  const w = {...BASE_WEIGHTS};
+  for (const [key, [thresh, sub, shiftPay]] of Object.entries(SUBTRACT_RULES)) {
+    const tier = KEY_TO_TIER[key];
+    if (jpProgress[tier] >= thresh) {
+      const actual = Math.min(sub, w[key] ?? 0);
+      w[key] = Math.max(0, (w[key] ?? 0) - actual);
+      if (shiftPay) {
+        const half = actual / 2;
+        w.PAY_0_50 = (w.PAY_0_50 ?? 0) + half;
+        w.PAY_0_75 = (w.PAY_0_75 ?? 0) + half;
+      }
+    }
+  }
+  return w;
+}
+
+function weightedPick(weights) {
+  const entries = Object.entries(weights).filter(([,v]) => v > 0);
+  const total = entries.reduce((s, [,v]) => s + v, 0);
+  let r = Math.random() * total;
+  for (const [k, v] of entries) { r -= v; if (r <= 0) return k; }
+  return entries[entries.length - 1][0];
+}
+
+// ═══════════════════════════════════════════════════
+// JACKPOT METER UI
+// ═══════════════════════════════════════════════════
+function buildMeters() {
+  for (const [tier, cfg] of Object.entries(JP_CONFIG)) {
+    const container = document.getElementById(`gems-${tier}`);
+    container.innerHTML = '';
+    for (let i = 0; i < cfg.req; i++) {
+      const slot = document.createElement('div');
+      slot.className = `gem-slot ${tier}`;
+      slot.id = `gem-${tier}-${i}`;
+      container.appendChild(slot);
+    }
+  }
+}
+
+function updateMeter(tier) {
+  const cfg = JP_CONFIG[tier];
+  const prog = jpProgress[tier];
+  for (let i = 0; i < cfg.req; i++) {
+    const el = document.getElementById(`gem-${tier}-${i}`);
+    el.classList.toggle('filled', i < prog);
+    el.classList.remove('last-empty');
+  }
+  // Pulse the next slot if close (one away)
+  if (prog > 0 && prog < cfg.req) {
+    const nextEl = document.getElementById(`gem-${tier}-${prog}`);
+    if (nextEl) nextEl.classList.add('last-empty');
+  }
+  // Pulse meter itself
+  const meter = document.getElementById(`jpm-${tier}`);
+  if (prog >= cfg.req - 1 && prog < cfg.req) {
+    meter.classList.add('pulsing');
+  } else {
+    meter.classList.remove('pulsing');
+  }
+}
+
+function resetMeters() {
+  for (const tier of Object.keys(JP_CONFIG)) {
+    jpProgress[tier] = 0;
+    updateMeter(tier);
+    document.getElementById(`jpm-${tier}`).classList.remove('pulsing', 'winning');
+  }
+}
+
+function flashJPMeter(tier) {
+  const el = document.getElementById(`jpm-${tier}`);
+  el.classList.add('winning');
+  setTimeout(() => el.classList.remove('winning'), 2200);
+}
+
+// ═══════════════════════════════════════════════════
+// CHEST MODAL  — shows for a set ms then resolves
+// ═══════════════════════════════════════════════════
+function showChestModal(icon, label, labelCls, sub, ms = 1400) {
+  return new Promise(resolve => {
+    const bg  = document.getElementById('chest-modal-bg');
+    const ico = document.getElementById('cm-icon');
+    const lbl = document.getElementById('cm-label');
+    const s   = document.getElementById('cm-sub');
+
+    // Reset & show closed chest first
+    ico.textContent = '📦';
+    ico.style.animation = 'none';
+    lbl.textContent = ''; lbl.className = 'cm-label';
+    s.textContent = 'Opening…';
+    bg.classList.add('open');
+
+    // Open after short pause
+    setTimeout(() => {
+      void ico.offsetWidth;
+      ico.style.animation = 'iconPop 0.5s cubic-bezier(0.34,1.56,0.64,1)';
+      ico.textContent = icon;
+      lbl.textContent = label;
+      lbl.className = `cm-label ${labelCls}`;
+      s.textContent = sub;
+    }, 350);
+
+    setTimeout(() => {
+      bg.classList.remove('open');
+      resolve();
+    }, ms);
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// PROCESS ONE CHEST OUTCOME
+// ═══════════════════════════════════════════════════
+async function processChest(chestNum, totalChests) {
+  const weights = computeWeights();
+  const outcome = weightedPick(weights);
+  let winAmt = 0, fsGain = 0;
+  let icon='', label='', cls='', sub='';
+  const subText = totalChests > 1 ? `Chest ${chestNum} of ${totalChests}` : '';
+
+  if (outcome === 'PAY_0_50') {
+    winAmt = 0.5 * bet;
+    icon = '💰'; label = `Direct Pay  +${winAmt.toFixed(2)}`; cls = 'pay'; sub = subText;
+    featureDirect += winAmt;
+  } else if (outcome === 'PAY_0_75') {
+    winAmt = 0.75 * bet;
+    icon = '💰'; label = `Direct Pay  +${winAmt.toFixed(2)}`; cls = 'pay'; sub = subText;
+    featureDirect += winAmt;
+  } else if (outcome === 'FS1') {
+    fsGain = 1;
+    icon = '🎴'; label = '+1 Free Spin!'; cls = 'fs'; sub = subText;
+    featureSpinsGained += 1;
+  } else if (outcome === 'FS2') {
+    fsGain = 2;
+    icon = '🎴'; label = '+2 Free Spins!'; cls = 'fs'; sub = subText;
+    featureSpinsGained += 2;
+  } else if (outcome === 'FS3') {
+    fsGain = 3;
+    icon = '🎴'; label = '+3 Free Spins!'; cls = 'fs'; sub = subText;
+    featureSpinsGained += 3;
+  } else if (outcome in KEY_TO_TIER) {
+    const tier = KEY_TO_TIER[outcome];
+    const cfg  = JP_CONFIG[tier];
+    jpProgress[tier] = Math.min(jpProgress[tier] + 1, cfg.req);
+    updateMeter(tier);
+
+    if (jpProgress[tier] >= cfg.req) {
+      // JACKPOT!
+      winAmt = cfg.pay * bet;
+      featureJPs.push({ tier, amount: winAmt, name: cfg.name });
+      icon = cfg.gem;
+      label = `${cfg.name.toUpperCase()} JACKPOT!  +${winAmt.toFixed(0)}`;
+      cls = 'jp';
+      sub = subText;
+      flashJPMeter(tier);
+      flash('red-flash');
+      // Show modal longer for jackpots
+      await showChestModal(icon, label, cls, sub, tier === 'grand' ? 3200 : tier === 'major' ? 2500 : 1800);
+      // Reset meter
+      jpProgress[tier] = 0;
+      updateMeter(tier);
+      return { winAmt, fsGain };
+    } else {
+      icon = cfg.gem;
+      label = `${cfg.name} Diamond  ${jpProgress[tier]}/${cfg.req}`;
+      cls = 'gem';
+      sub = subText;
+    }
+  }
+
+  await showChestModal(icon, label, cls, sub, cls === 'jp' ? 2200 : cls === 'fs' ? 1300 : 1100);
+  return { winAmt, fsGain };
+}
+
+// ═══════════════════════════════════════════════════
+// FLASH
+// ═══════════════════════════════════════════════════
+function flash(cls) {
+  const el = document.getElementById('flash-layer');
+  el.className = 'flash-layer';
+  void el.offsetWidth;
+  el.className = `flash-layer ${cls}`;
+}
+
+// ═══════════════════════════════════════════════════
+// UI HELPERS
+// ═══════════════════════════════════════════════════
+function updateUI() {
+  document.getElementById('fs-counter').textContent = inFeature ? freeSpins : '—';
+  document.getElementById('feat-win').textContent = featureWin.toFixed(2);
+  document.getElementById('bet-display').textContent = bet;
+  document.getElementById('bal-display').textContent = balance.toFixed(0);
+  document.getElementById('bet-val').textContent = bet;
+  const cost = bet * FEATURE_MULT;
+  document.getElementById('buy-cost').textContent = cost;
+}
+
+function setMsg(text, cls='idle') {
+  const el = document.getElementById('msg-bar');
+  el.textContent = text;
+  el.className = `msg-bar ${cls}`;
+}
+
+function pause(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ═══════════════════════════════════════════════════
+// SUMMARY MODAL
+// ═══════════════════════════════════════════════════
+function showSummary() {
+  const table = document.getElementById('sm-table');
+  table.innerHTML = '';
+
+  function addRow(lbl, val, valCls='', isHighlight=false, isJP=false) {
+    const tr = document.createElement('tr');
+    if (isHighlight) tr.className = 'highlight';
+    if (isJP) tr.className = 'jp-row';
+    tr.innerHTML = `<td class="lbl">${lbl}</td><td class="val ${valCls}">${val}</td>`;
+    table.appendChild(tr);
+  }
+
+  addRow('Feature Cost', `−${featureCost.toFixed(2)}`, 'neg');
+  addRow('Free Spins', `${START_FS} base + ${featureSpinsGained} bonus`);
+  if (featureLine > 0)   addRow('Line Wins', `+${featureLine.toFixed(2)}`, 'pos');
+  if (featureDirect > 0) addRow('Direct Pay Chests', `+${featureDirect.toFixed(2)}`, 'pos');
+
+  for (const jp of featureJPs) {
+    addRow(`${JP_CONFIG[jp.tier].gem} ${jp.name} Jackpot`, `+${jp.amount.toFixed(0)}`, 'jp-val', false, true);
+  }
+
+  addRow('Total Feature Win', `+${featureWin.toFixed(2)}`, 'gold', true);
+
+  const profit = featureWin - featureCost;
+  const profEl = document.getElementById('profit-display');
+  profEl.className = 'profit-display ' + (profit > 0 ? 'up' : profit < 0 ? 'down' : 'even');
+  profEl.textContent = (profit >= 0 ? '▲ +' : '▼ ') + profit.toFixed(2) + ' net';
+
+  const btn = document.getElementById('play-again-btn');
+  btn.disabled = balance < bet * FEATURE_MULT;
+  btn.textContent = btn.disabled ? 'Insufficient Balance' : '◆ Play Again';
+
+  document.getElementById('summary-bg').classList.add('open');
+}
+
+// ═══════════════════════════════════════════════════
+// FEATURE MAIN LOOP
+// ═══════════════════════════════════════════════════
+async function runFeature() {
+  setButtons(false);
+  setMsg('🔴 Feature running! Collecting diamonds…', 'gold');
+
+  while (freeSpins > 0) {
+    freeSpins--;
+    updateUI();
+    setMsg(`Spin! · ${freeSpins} spins remaining`, 'info');
+
+    const w = sampleWindow();
+    await animateSpin(w);
+
+    // Line wins
+    const lineWin = evalAllLines(w) * bet;
+    if (lineWin > 0) {
+      featureLine += lineWin;
+      featureWin  += lineWin;
+      balance     += lineWin;
+      updateUI();
+    }
+
+    // Count chests
+    let chestCount = 0;
+    for (let r = 0; r < ROWS; r++)
+      for (let c = 0; c < COLS; c++)
+        if (w[r][c] === CHEST) chestCount++;
+
+    if (chestCount > 0) {
+      setMsg(`📦 ${chestCount} chest${chestCount>1?'s':''} opening!`, 'gold');
+      for (let i = 1; i <= chestCount; i++) {
+        const { winAmt, fsGain } = await processChest(i, chestCount);
+        if (winAmt > 0) {
+          featureWin += winAmt;
+          balance    += winAmt;
+          flash('gold-flash');
+        }
+        if (fsGain > 0) {
+          freeSpins = Math.min(MAX_FS, freeSpins + fsGain);
+          setMsg(`🎴 +${fsGain} spin${fsGain>1?'s':''}! · ${freeSpins} remaining`, 'win');
+        }
+        updateUI();
+      }
+    }
+
+    // Pause between spins
+    if (freeSpins > 0) await pause(600);
+  }
+
+  // Feature done
+  inFeature = false;
+  setMsg('✨ Feature complete!', 'gold');
+  await pause(600);
+  showSummary();
+}
+
+// ═══════════════════════════════════════════════════
+// BUY FEATURE
+// ═══════════════════════════════════════════════════
+function buyFeature() {
+  const cost = bet * FEATURE_MULT;
+  if (balance < cost) { setMsg('Not enough balance!', 'idle'); return; }
+
+  balance    -= cost;
+  featureCost = cost;
+  featureWin  = 0;
+  featureLine = 0;
+  featureDirect = 0;
+  featureJPs  = [];
+  featureSpinsGained = 0;
+  freeSpins   = START_FS;
+  inFeature   = true;
+
+  resetMeters();
+  updateUI();
+  flash('red-flash');
+  runFeature();
+}
+
+// ═══════════════════════════════════════════════════
+// BUTTON LOCK
+// ═══════════════════════════════════════════════════
+function setButtons(enabled) {
+  document.getElementById('btn-up').disabled   = !enabled;
+  document.getElementById('btn-dn').disabled   = !enabled;
+  document.getElementById('buy-btn').disabled  = !enabled;
+}
+
+// ═══════════════════════════════════════════════════
+// CONTROLS
+// ═══════════════════════════════════════════════════
+document.getElementById('btn-up').onclick = () => {
+  if (inFeature) return;
+  if (betIdx < BETS.length - 1) { betIdx++; bet = BETS[betIdx]; updateUI(); }
+};
+document.getElementById('btn-dn').onclick = () => {
+  if (inFeature) return;
+  if (betIdx > 0) { betIdx--; bet = BETS[betIdx]; updateUI(); }
+};
+document.getElementById('buy-btn').onclick = () => {
+  if (!inFeature) buyFeature();
+};
+document.getElementById('play-again-btn').onclick = () => {
+  document.getElementById('summary-bg').classList.remove('open');
+  setButtons(true);
+  setMsg('Set your bet · Buy 8 Free Spins for 25× your bet · Collect diamonds to win jackpots', 'idle');
+  updateUI();
+};
+
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space' && !inFeature) { e.preventDefault(); buyFeature(); }
+  if (e.code === 'ArrowUp'   && !inFeature) document.getElementById('btn-up').click();
+  if (e.code === 'ArrowDown' && !inFeature) document.getElementById('btn-dn').click();
+});
+
+// ═══════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════
+buildGrid();
+buildMeters();
+updateUI();
+setButtons(true);
+</script>
+</body>
+</html>
