@@ -255,6 +255,32 @@ const JP_CFG={mini:{req:4,pay:10,col:'mini',key:'D_PURPLE',gem:'🟣',name:'Mini
 const KEY2T={D_PURPLE:'mini',D_GREEN:'minor',D_BLUE:'major',D_RED:'grand'};
 const BASE_W={D_RED:14.5,D_BLUE:16.5,D_GREEN:20,D_PURPLE:23,FS1:9.8,FS2:2.4,FS3:1,PAY050:5,PAY075:5};
 const CHEST_KEYS=Object.keys(BASE_W),CHEST_TOT=CHEST_KEYS.reduce((a,k)=>a+BASE_W[k],0);
+// Subtract rules: when jpProg[tier] >= threshold, reduce that diamond's weight
+// and shift the subtracted amount equally to direct pay keys (matches Python sim exactly)
+// D_BLUE(Major) req=5: fires at 4 diamonds → weight 16.5→2.0
+// D_RED(Grand)  req=5: fires at 4 diamonds → weight 14.5→0.25
+// D_GREEN(Minor)req=4: fires at 3 diamonds → weight 20.0→10.0
+const SUBTRACT_RULES={
+  D_BLUE: {thresh:4, sub:14.5,  shift:true, tier:'major'},
+  D_RED:  {thresh:4, sub:14.25, shift:true, tier:'grand'},
+  D_GREEN:{thresh:3, sub:10.0,  shift:true, tier:'minor'},
+};
+function computeWeights(){
+  const w={};
+  for(const k of CHEST_KEYS) w[k]=BASE_W[k];
+  for(const [key,rule] of Object.entries(SUBTRACT_RULES)){
+    if((G.jpProg[rule.tier]||0)>=rule.thresh){
+      const actual=Math.min(rule.sub, w[key]||0);
+      w[key]=Math.max(0,(w[key]||0)-actual);
+      if(rule.shift){
+        const half=actual/2;
+        w['PAY050']=(w['PAY050']||0)+half;
+        w['PAY075']=(w['PAY075']||0)+half;
+      }
+    }
+  }
+  return w;
+}
 const GREEN_ADD=[.34,.45,.56,.80,1.00,1.36],GREEN_WW=[18,15,12,7,5,3],GWT=GREEN_WW.reduce((a,v)=>a+v,0),GP=GREEN_WW.map(v=>v/GWT);
 const PL_COL=["#ff4466","#00ffaa","#44aaff","#ffcc00","#cc44ff","#ff8800","#00ddff","#88ff00","#ff44cc","#44ffcc"];
 const BETS=[1,2,5,10,20,50,100,200];
@@ -474,7 +500,7 @@ function showChestModal(icon,label,cls,sub,ms=1250){
     setTimeout(()=>{bg.classList.remove("open");resolve();},ms);
   });
 }
-function drawChest(){let r=Math.random()*CHEST_TOT,acc=0;for(const k of CHEST_KEYS){acc+=BASE_W[k];if(r<acc)return k;}return CHEST_KEYS[CHEST_KEYS.length-1];}
+function drawChest(){const w=computeWeights();const entries=Object.entries(w).filter(([,v])=>v>0);const total=entries.reduce((s,[,v])=>s+v,0);let r=Math.random()*total,acc=0;for(const [k,v] of entries){acc+=v;if(r<=acc)return k;}return entries[entries.length-1][0];}
 async function processChest(num,total){
   const out=drawChest();let win=0,fsGain=0,icon="",label="",cls="",sub=total>1?`Chest ${num} of ${total}`:"";
   if(out==="PAY050"){win=.5*G.bet;icon="💰";label=`Direct Pay +${win.toFixed(2)}`;cls="pay";fDirect+=win;}
