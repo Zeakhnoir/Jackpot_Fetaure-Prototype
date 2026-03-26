@@ -173,14 +173,333 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:ra
 @keyframes fG{0%{opacity:0;background:rgba(212,168,67,.09)}30%{opacity:1}100%{opacity:0}}
 @keyframes fR{0%{opacity:0;background:rgba(220,38,38,.16)}30%{opacity:1}100%{opacity:0}}
 @media(max-width:480px){.jp-payout{font-size:.58rem}.jp-label{font-size:.44rem}}
+
+/* ── BASE GAME ── */
+#base-screen{background:var(--bg)}
+#base-wrap{width:fit-content;max-width:100%;display:flex;flex-direction:column;align-items:center}
+
+/* coin meters bar */
+#coin-meters{display:flex;gap:14px;margin-bottom:14px;justify-content:center;width:100%}
+
+/* Cup container card */
+.cmeter{
+  background:linear-gradient(170deg,#130d22,#090612);
+  border:1.5px solid;border-radius:16px;padding:12px 14px 14px;
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  flex:1;min-width:0;position:relative;overflow:hidden;
+  transition:box-shadow .35s,transform .2s;
+}
+.cmeter::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.22),transparent)}
+.cmeter.red   {border-color:rgba(248,113,113,.35)}
+.cmeter.green {border-color:rgba(74,222,128,.35)}
+.cmeter.purple{border-color:rgba(192,132,252,.35)}
+.cmeter.lighting.red   {box-shadow:0 0 30px rgba(248,113,113,.7),inset 0 0 24px rgba(248,113,113,.07);transform:scale(1.04)}
+.cmeter.lighting.green {box-shadow:0 0 30px rgba(74,222,128,.7), inset 0 0 24px rgba(74,222,128,.07); transform:scale(1.04)}
+.cmeter.lighting.purple{box-shadow:0 0 30px rgba(192,132,252,.7),inset 0 0 24px rgba(192,132,252,.07);transform:scale(1.04)}
+
+.cmeter-name{font-family:'Cinzel',serif;font-size:.58rem;letter-spacing:.18em;font-weight:700;text-transform:uppercase;margin-bottom:0}
+.cmeter.red    .cmeter-name{color:#f87171}
+.cmeter.green  .cmeter-name{color:#4ade80}
+.cmeter.purple .cmeter-name{color:#c084fc}
+.cmeter-feat{font-size:.48rem;letter-spacing:.1em;color:rgba(240,232,216,.3);margin-top:-3px}
+
+/* SVG cup wrapper */
+.cup-wrap{width:64px;height:90px;position:relative;flex-shrink:0}
+.cup-wrap svg{width:100%;height:100%;overflow:visible}
+
+/* Liquid fill rect — animated via JS clip-path / height */
+.cup-liquid{transition:height .6s cubic-bezier(.34,1.56,.64,1), y .6s cubic-bezier(.34,1.56,.64,1), opacity .4s}
+
+/* Wave animation on liquid surface */
+@keyframes waveShift{0%{d:path("M0,0 Q8,-3 16,0 Q24,3 32,0 Q40,-3 48,0 Q56,3 64,0 L64,4 L0,4 Z")}50%{d:path("M0,0 Q8,3 16,0 Q24,-3 32,0 Q40,3 48,0 Q56,-3 64,0 L64,4 L0,4 Z")}100%{d:path("M0,0 Q8,-3 16,0 Q24,3 32,0 Q40,-3 48,0 Q56,3 64,0 L64,4 L0,4 Z")}}
+.cup-wave{animation:waveShift 2.2s ease-in-out infinite}
+
+/* Payout markers on right side of cup */
+.cpay{font-family:'Cinzel',serif;font-size:.48rem;font-weight:700;opacity:.4;letter-spacing:.04em;transition:opacity .3s}
+.cmeter.red    .cpay{fill:#f87171}
+.cmeter.green  .cpay{fill:#4ade80}
+.cmeter.purple .cpay{fill:#c084fc}
+.cpay.active{opacity:1;animation:payPulse .6s ease-in-out infinite alternate}
+@keyframes payPulse{from{opacity:.75}to{opacity:1}}
+
+/* bubbles */
+@keyframes bubbleRise{0%{transform:translateY(0) scale(1);opacity:.7}100%{transform:translateY(-60px) scale(.4);opacity:0}}
+.bubble{animation:bubbleRise linear forwards}
+
+/* base reel machine */
+#base-machine{
+  display:inline-flex;flex-direction:column;width:fit-content;
+  background:linear-gradient(175deg,#130d20,#0c0916,#10091a);
+  border:1px solid var(--border);border-radius:20px;padding:14px 14px 18px;
+  box-shadow:0 0 0 1px rgba(212,168,67,.05),0 20px 80px rgba(0,0,0,.95),inset 0 1px 0 rgba(212,168,67,.1)
+}
+#base-info{display:flex;align-items:center;gap:7px;margin-bottom:8px;flex-wrap:wrap}
+#base-reel-window{
+  background:#04020b;border:1px solid rgba(212,168,67,.14);border-radius:13px;
+  padding:12px;margin-bottom:10px;position:relative;width:fit-content;
+  box-shadow:inset 0 8px 40px rgba(0,0,0,.95),inset 0 0 0 1px rgba(255,255,255,.018)
+}
+#base-reel-window::after{content:'';position:absolute;inset:0;border-radius:12px;pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.05) 3px,rgba(0,0,0,.05) 4px)}
+#base-grid{display:grid;position:relative}
+#base-canvas{position:absolute;top:0;left:0;pointer-events:none}
+#base-controls{display:flex;gap:8px;align-items:stretch;margin-bottom:8px}
+#base-msg{text-align:center;min-height:28px;padding:5px 10px;font-size:.75rem;letter-spacing:.09em;
+  border-radius:7px;transition:all .25s;text-transform:uppercase;font-weight:600}
+#base-msg.idle{color:rgba(212,168,67,.38)}
+#base-msg.win{color:#4ade80;background:rgba(74,222,128,.05)}
+#base-msg.feat{color:var(--gold);background:rgba(212,168,67,.07);animation:mb .6s ease infinite alternate}
+#base-msg.info{color:rgba(212,168,67,.5)}
+#base-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:11px;width:100%}
+
+/* cell coin highlights */
+.cell.is-red-coin   {background:linear-gradient(145deg,rgba(248,113,113,.22),rgba(248,113,113,.05))!important;border-color:rgba(248,113,113,.75)!important;box-shadow:0 0 14px rgba(248,113,113,.4)!important}
+.cell.is-green-coin {background:linear-gradient(145deg,rgba(74,222,128,.18),rgba(74,222,128,.04))!important;border-color:rgba(74,222,128,.7)!important; box-shadow:0 0 14px rgba(74,222,128,.4)!important}
+.cell.is-purple-coin{background:linear-gradient(145deg,rgba(192,132,252,.2),rgba(192,132,252,.04))!important;border-color:rgba(192,132,252,.7)!important;box-shadow:0 0 14px rgba(192,132,252,.4)!important}
+
+/* feature trigger overlay */
+#feat-trigger-bg{position:fixed;inset:0;z-index:800;background:rgba(4,2,10,.7);
+  display:none;align-items:center;justify-content:center}
+#feat-trigger-bg.open{display:flex;animation:fadeI .3s ease}
+#feat-trigger-modal{
+  background:linear-gradient(160deg,#1a0830,#0e0620);border:2px solid;
+  border-radius:20px;padding:30px 28px 24px;max-width:340px;width:92%;
+  text-align:center;position:relative;overflow:hidden;
+  animation:mIn .5s cubic-bezier(.34,1.56,.64,1)
+}
+#feat-trigger-modal::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.3),transparent)}
+#ftm-icon{font-size:3.2rem;display:block;margin-bottom:8px;animation:iPop .5s cubic-bezier(.34,1.56,.64,1)}
+#ftm-title{font-family:'Cinzel Decorative',serif;font-size:1.2rem;font-weight:900;margin-bottom:4px}
+#ftm-sub{font-size:.62rem;letter-spacing:.3em;opacity:.5;text-transform:uppercase;margin-bottom:16px}
+#ftm-payout{font-family:'Cinzel',serif;font-size:1.8rem;font-weight:700;margin-bottom:6px}
+#ftm-desc{font-size:.7rem;color:rgba(240,232,216,.5);margin-bottom:20px;line-height:1.6}
+.ftm-btn{width:100%;padding:12px;border:none;border-radius:11px;
+  font-family:'Cinzel',serif;font-size:.95rem;font-weight:700;color:#07050f;
+  cursor:pointer;letter-spacing:.08em;margin-bottom:8px;transition:all .15s}
+.ftm-btn:active{transform:scale(.97)}
+#ftm-btn-play{background:var(--gold);box-shadow:0 3px 0 #7a5000}
+#ftm-btn-play:hover{background:var(--gold2)}
+#ftm-btn-skip{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);
+  color:rgba(240,232,216,.5);font-size:.78rem;padding:9px}
+#ftm-btn-skip:hover{background:rgba(255,255,255,.12);color:var(--cream)}
+#ftm-btn-buy{background:linear-gradient(135deg,#7c1a1a,#b91c1c 45%,#dc2626 55%,#7c1a1a);
+  border:1px solid rgba(220,38,38,.6);color:var(--cream);
+  box-shadow:0 3px 0 #3a0808,0 0 18px rgba(185,28,28,.3)}
+#ftm-btn-buy:hover{box-shadow:0 3px 0 #3a0808,0 0 28px rgba(185,28,28,.5)}
+
+/* base stats */
+#base-stats{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;justify-content:center}
+.bstat{background:rgba(212,168,67,.06);border:1px solid rgba(212,168,67,.15);
+  border-radius:9px;padding:6px 12px;text-align:center;flex:1;min-width:70px}
+.bstat .bs-l{font-size:.55rem;letter-spacing:.2em;color:rgba(212,168,67,.45)}
+.bstat .bs-v{font-family:'Cinzel',serif;font-size:1rem;font-weight:700;color:var(--gold)}
+
+/* spin button */
+#btn-spin-base{
+  flex:1;min-height:54px;
+  background:linear-gradient(135deg,#0e2a1a,#1a5c32 45%,#22753e 55%,#0e2a1a);
+  border:1px solid rgba(74,222,128,.4);border-radius:11px;
+  font-family:'Cinzel',serif;font-size:1rem;font-weight:700;color:#c8ffe0;
+  letter-spacing:.07em;cursor:pointer;
+  box-shadow:0 4px 0 #051a0e,0 0 20px rgba(74,222,128,.15);
+  transition:all .12s;position:relative;overflow:hidden
+}
+#btn-spin-base:hover:not(:disabled){box-shadow:0 4px 0 #051a0e,0 0 30px rgba(74,222,128,.35)}
+#btn-spin-base:active{transform:translateY(3px);box-shadow:0 1px 0 #051a0e}
+#btn-spin-base:disabled{opacity:.3;cursor:not-allowed;transform:none}
+
+/* buy feature btn in base controls */
+#btn-buy-base{
+  padding:0 16px;min-height:54px;
+  background:linear-gradient(135deg,#7c1a1a,#b91c1c 45%,#dc2626 55%,#7c1a1a);
+  border:1px solid rgba(220,38,38,.58);border-radius:11px;
+  font-family:'Cinzel',serif;font-size:.8rem;font-weight:700;color:var(--cream);
+  cursor:pointer;box-shadow:0 4px 0 #3a0808;transition:all .12s;white-space:nowrap
+}
+#btn-buy-base:hover{box-shadow:0 4px 0 #3a0808,0 0 24px rgba(185,28,28,.4)}
+#btn-buy-base:active{transform:translateY(3px)}
 </style>
 </head>
 <body>
 
 <!-- SELECTOR -->
 <div id="sel-screen" class="screen active">
-  <div id="sel-title"><h1>⛩ SAMURAI 888</h1><p>Katsumi · Feature Buy</p></div>
+  <div id="sel-title"><h1>⛩ SAMURAI 888</h1><p>Katsumi · Select Mode</p></div>
+  <div style="margin-bottom:14px;text-align:center">
+    <button id="btn-play-base" style="font-family:Cinzel,serif;font-size:.9rem;font-weight:700;color:#07050f;background:var(--gold);border:none;border-radius:11px;padding:12px 36px;cursor:pointer;box-shadow:0 4px 0 #7a5000;letter-spacing:.08em;transition:all .15s" onmouseover="this.style.background='#f0c96a'" onmouseout="this.style.background='var(--gold)'">▶ PLAY BASE GAME</button>
+  </div>
+  <div style="font-size:.58rem;letter-spacing:.3em;color:rgba(212,168,67,.3);text-align:center;margin-bottom:14px;font-family:Cinzel,serif">— OR BUY A FEATURE DIRECTLY —</div>
   <div class="mode-grid" id="mode-grid"></div>
+</div>
+
+<!-- BASE GAME -->
+<div id="base-screen" class="screen">
+  <div id="base-wrap">
+    <div id="base-hdr">
+      <button id="btn-base-back" class="btn-adj" style="min-height:36px;padding:0 14px;font-size:.75rem">← Menu</button>
+      <div style="font-family:'Cinzel Decorative',serif;font-size:.95rem;color:var(--gold);letter-spacing:.1em">⛩ SAMURAI 888</div>
+      <div style="font-size:.6rem;color:rgba(212,168,67,.42);font-family:'Cinzel',serif">BET <span id="base-hdr-bet">1</span></div>
+    </div>
+
+    <!-- 3 COIN METERS — SVG liquid cups -->
+    <div id="coin-meters">
+      <div class="cmeter red" id="cm-red">
+        <div class="cmeter-name">Jackpot Boost</div>
+        <div class="cmeter-feat">🔴 Red Coin</div>
+        <div class="cup-wrap">
+          <svg id="cup-svg-red" viewBox="0 0 64 90" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <clipPath id="cup-clip-red">
+                <!-- Cup shape: narrows at bottom, widens toward top -->
+                <path d="M10,88 L6,10 Q6,4 12,4 L52,4 Q58,4 58,10 L54,88 Z"/>
+              </clipPath>
+              <linearGradient id="liq-red" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#ff6b8a"/>
+                <stop offset="60%" stop-color="#e53e3e"/>
+                <stop offset="100%" stop-color="#9b1c1c"/>
+              </linearGradient>
+              <linearGradient id="shine-red" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stop-color="rgba(255,255,255,.18)"/>
+                <stop offset="40%" stop-color="rgba(255,255,255,.04)"/>
+                <stop offset="100%" stop-color="rgba(0,0,0,.0)"/>
+              </linearGradient>
+            </defs>
+            <!-- Cup glass outline -->
+            <path d="M10,88 L6,10 Q6,4 12,4 L52,4 Q58,4 58,10 L54,88 Z"
+                  fill="rgba(248,113,113,.05)" stroke="rgba(248,113,113,.55)" stroke-width="1.5"/>
+            <!-- Liquid fill group clipped to cup shape -->
+            <g clip-path="url(#cup-clip-red)">
+              <rect id="liq-rect-red" x="0" y="90" width="64" height="90" fill="url(#liq-red)" class="cup-liquid"/>
+              <!-- Wave on surface -->
+              <path id="wave-red" d="M0,0 Q8,-3 16,0 Q24,3 32,0 Q40,-3 48,0 Q56,3 64,0 L64,4 L0,4 Z"
+                    fill="rgba(255,180,180,.5)" class="cup-wave" transform="translate(0,90)"/>
+              <!-- Shine -->
+              <rect x="8" y="4" width="14" height="84" rx="3" fill="url(#shine-red)" opacity=".7"/>
+              <!-- Bubbles container -->
+              <g id="bubbles-red"></g>
+            </g>
+            <!-- Cup rim highlight -->
+            <line x1="6" y1="10" x2="58" y2="10" stroke="rgba(255,255,255,.15)" stroke-width="1"/>
+            <!-- Tick marks + pay labels -->
+            <line x1="54" y1="62" x2="58" y2="62" stroke="rgba(248,113,113,.5)" stroke-width="1"/>
+            <text x="60" y="65" font-family="Cinzel,serif" font-size="6" fill="#f87171" opacity=".5" id="cpay-red-1">23.75×</text>
+            <line x1="54" y1="38" x2="58" y2="38" stroke="rgba(248,113,113,.6)" stroke-width="1"/>
+            <text x="60" y="41" font-family="Cinzel,serif" font-size="6" fill="#f87171" opacity=".5" id="cpay-red-2">47.5×</text>
+            <line x1="54" y1="14" x2="58" y2="14" stroke="rgba(248,113,113,.7)" stroke-width="1"/>
+            <text x="60" y="17" font-family="Cinzel,serif" font-size="6" fill="#f87171" opacity=".5" id="cpay-red-3">142.5×</text>
+            <!-- Base stem -->
+            <rect x="22" y="87" width="20" height="3" rx="1.5" fill="rgba(248,113,113,.4)"/>
+          </svg>
+        </div>
+      </div>
+
+      <div class="cmeter green" id="cm-green">
+        <div class="cmeter-name">Coin Boost</div>
+        <div class="cmeter-feat">🟢 Green Coin</div>
+        <div class="cup-wrap">
+          <svg id="cup-svg-green" viewBox="0 0 64 90" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <clipPath id="cup-clip-green">
+                <path d="M10,88 L6,10 Q6,4 12,4 L52,4 Q58,4 58,10 L54,88 Z"/>
+              </clipPath>
+              <linearGradient id="liq-green" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#6ee7a0"/>
+                <stop offset="60%" stop-color="#22c55e"/>
+                <stop offset="100%" stop-color="#14532d"/>
+              </linearGradient>
+              <linearGradient id="shine-green" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stop-color="rgba(255,255,255,.16)"/>
+                <stop offset="40%" stop-color="rgba(255,255,255,.03)"/>
+                <stop offset="100%" stop-color="rgba(0,0,0,.0)"/>
+              </linearGradient>
+            </defs>
+            <path d="M10,88 L6,10 Q6,4 12,4 L52,4 Q58,4 58,10 L54,88 Z"
+                  fill="rgba(74,222,128,.05)" stroke="rgba(74,222,128,.55)" stroke-width="1.5"/>
+            <g clip-path="url(#cup-clip-green)">
+              <rect id="liq-rect-green" x="0" y="90" width="64" height="90" fill="url(#liq-green)" class="cup-liquid"/>
+              <path id="wave-green" d="M0,0 Q8,-3 16,0 Q24,3 32,0 Q40,-3 48,0 Q56,3 64,0 L64,4 L0,4 Z"
+                    fill="rgba(160,255,200,.5)" class="cup-wave" transform="translate(0,90)"/>
+              <rect x="8" y="4" width="14" height="84" rx="3" fill="url(#shine-green)" opacity=".7"/>
+              <g id="bubbles-green"></g>
+            </g>
+            <line x1="6" y1="10" x2="58" y2="10" stroke="rgba(255,255,255,.15)" stroke-width="1"/>
+            <line x1="54" y1="62" x2="58" y2="62" stroke="rgba(74,222,128,.5)" stroke-width="1"/>
+            <text x="60" y="65" font-family="Cinzel,serif" font-size="6" fill="#4ade80" opacity=".5" id="cpay-green-1">23.75×</text>
+            <line x1="54" y1="38" x2="58" y2="38" stroke="rgba(74,222,128,.6)" stroke-width="1"/>
+            <text x="60" y="41" font-family="Cinzel,serif" font-size="6" fill="#4ade80" opacity=".5" id="cpay-green-2">47.5×</text>
+            <line x1="54" y1="14" x2="58" y2="14" stroke="rgba(74,222,128,.7)" stroke-width="1"/>
+            <text x="60" y="17" font-family="Cinzel,serif" font-size="6" fill="#4ade80" opacity=".5" id="cpay-green-3">142.5×</text>
+            <rect x="22" y="87" width="20" height="3" rx="1.5" fill="rgba(74,222,128,.4)"/>
+          </svg>
+        </div>
+      </div>
+
+      <div class="cmeter purple" id="cm-purple">
+        <div class="cmeter-name">Reel Boost</div>
+        <div class="cmeter-feat">🟣 Purple Coin</div>
+        <div class="cup-wrap">
+          <svg id="cup-svg-purple" viewBox="0 0 64 90" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <clipPath id="cup-clip-purple">
+                <path d="M10,88 L6,10 Q6,4 12,4 L52,4 Q58,4 58,10 L54,88 Z"/>
+              </clipPath>
+              <linearGradient id="liq-purple" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#e9d5ff"/>
+                <stop offset="60%" stop-color="#a855f7"/>
+                <stop offset="100%" stop-color="#581c87"/>
+              </linearGradient>
+              <linearGradient id="shine-purple" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stop-color="rgba(255,255,255,.16)"/>
+                <stop offset="40%" stop-color="rgba(255,255,255,.03)"/>
+                <stop offset="100%" stop-color="rgba(0,0,0,.0)"/>
+              </linearGradient>
+            </defs>
+            <path d="M10,88 L6,10 Q6,4 12,4 L52,4 Q58,4 58,10 L54,88 Z"
+                  fill="rgba(192,132,252,.05)" stroke="rgba(192,132,252,.55)" stroke-width="1.5"/>
+            <g clip-path="url(#cup-clip-purple)">
+              <rect id="liq-rect-purple" x="0" y="90" width="64" height="90" fill="url(#liq-purple)" class="cup-liquid"/>
+              <path id="wave-purple" d="M0,0 Q8,-3 16,0 Q24,3 32,0 Q40,-3 48,0 Q56,3 64,0 L64,4 L0,4 Z"
+                    fill="rgba(220,180,255,.5)" class="cup-wave" transform="translate(0,90)"/>
+              <rect x="8" y="4" width="14" height="84" rx="3" fill="url(#shine-purple)" opacity=".7"/>
+              <g id="bubbles-purple"></g>
+            </g>
+            <line x1="6" y1="10" x2="58" y2="10" stroke="rgba(255,255,255,.15)" stroke-width="1"/>
+            <line x1="54" y1="62" x2="58" y2="62" stroke="rgba(192,132,252,.5)" stroke-width="1"/>
+            <text x="60" y="65" font-family="Cinzel,serif" font-size="6" fill="#c084fc" opacity=".5" id="cpay-purple-1">23.75×</text>
+            <line x1="54" y1="38" x2="58" y2="38" stroke="rgba(192,132,252,.6)" stroke-width="1"/>
+            <text x="60" y="41" font-family="Cinzel,serif" font-size="6" fill="#c084fc" opacity=".5" id="cpay-purple-2">47.5×</text>
+            <line x1="54" y1="14" x2="58" y2="14" stroke="rgba(192,132,252,.7)" stroke-width="1"/>
+            <text x="60" y="17" font-family="Cinzel,serif" font-size="6" fill="#c084fc" opacity=".5" id="cpay-purple-3">142.5×</text>
+            <rect x="22" y="87" width="20" height="3" rx="1.5" fill="rgba(192,132,252,.4)"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <div id="base-machine">
+      <div id="base-stats">
+        <div class="bstat"><div class="bs-l">BALANCE</div><div class="bs-v" id="bs-bal">1000.00</div></div>
+        <div class="bstat"><div class="bs-l">WIN</div><div class="bs-v" id="bs-win">0.00</div></div>
+        <div class="bstat"><div class="bs-l">SPINS</div><div class="bs-v" id="bs-spins">0</div></div>
+      </div>
+      <div id="base-reel-window">
+        <div id="base-grid"></div>
+        <canvas id="base-canvas"></canvas>
+      </div>
+      <div id="base-controls">
+        <div class="bet-group">
+          <button class="btn-adj" id="base-btn-dn">−</button>
+          <div class="bet-display" id="base-bet-val">1</div>
+          <button class="btn-adj" id="base-btn-up">+</button>
+        </div>
+        <button id="btn-spin-base">▶ SPIN</button>
+        <button id="btn-buy-base">◆ BUY FEATURE</button>
+      </div>
+      <div id="base-msg" class="idle">Spin to collect coins and trigger features</div>
+    </div>
+  </div>
 </div>
 
 <!-- GAME -->
@@ -244,6 +563,19 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:ra
 </div>
 
 <div class="flash-layer" id="flash-layer"></div>
+
+<!-- FEATURE TRIGGER MODAL -->
+<div id="feat-trigger-bg">
+  <div id="feat-trigger-modal">
+    <span id="ftm-icon">🎰</span>
+    <div id="ftm-title">FEATURE TRIGGERED!</div>
+    <div id="ftm-sub">Coin Boost Activated</div>
+    <div id="ftm-payout">+23.75×</div>
+    <div id="ftm-desc">Collect your payout or launch the full feature for the chance of much more.</div>
+    <button class="ftm-btn" id="ftm-btn-play">🎰 LAUNCH FEATURE (FREE)</button>
+    <button class="ftm-btn" id="ftm-btn-skip">💰 TAKE PAYOUT &amp; CONTINUE</button>
+  </div>
+</div>
 
 <script>
 const EMOJI={0:"👘",1:"⚔️",2:"⛩️",3:"🐉",4:"🐟",5:"🅰️",6:"🎴",7:"👑",8:"🃏",9:"🔟",10:"⭐",12:"🟢",14:"📦",15:"🪙"};
@@ -461,7 +793,7 @@ function evalLines(mat){
 function drawPL(wins){
   plCtx.clearRect(0,0,plCv.width,plCv.height);
   wins.forEach((w,i)=>{
-    const col=PL_COL[i%PL_COL.length];
+    const col=BASE_PL_COL[i%BASE_PL_COL.length];
     [2.5,9].forEach((lw,ii)=>{plCtx.beginPath();plCtx.strokeStyle=col;plCtx.lineWidth=lw;plCtx.globalAlpha=ii?.14:.82;for(let c=0;c<G.mode.cols;c++){const x=c*(CELL+GAP)+CELL/2,y=w.pl[c]*(CELL+GAP)+CELL/2;c===0?plCtx.moveTo(x,y):plCtx.lineTo(x,y);}plCtx.stroke();});
     for(let c=0;c<w.cnt;c++){const x=c*(CELL+GAP)+CELL/2,y=w.pl[c]*(CELL+GAP)+CELL/2;plCtx.beginPath();plCtx.arc(x,y,5,0,Math.PI*2);plCtx.fillStyle=col;plCtx.globalAlpha=1;plCtx.fill();plCtx.beginPath();plCtx.arc(x,y,2.5,0,Math.PI*2);plCtx.fillStyle="#fff";plCtx.globalAlpha=.9;plCtx.fill();}
   });plCtx.globalAlpha=1;
@@ -603,6 +935,491 @@ document.getElementById("btn-dn").onclick=()=>{if(!inFeature&&betIdx>0){betIdx--
 document.getElementById("buy-btn").onclick=()=>{if(!inFeature)buyFeature();};
 document.getElementById("play-again-btn").onclick=()=>{document.getElementById("summary-bg").classList.remove("open");setButtons(true);setMsg("Set your bet and buy the feature","idle");updateUI();};
 document.addEventListener("keydown",e=>{if(e.code==="Space"&&!inFeature){e.preventDefault();buyFeature();}if(e.code==="ArrowUp"&&!inFeature)document.getElementById("btn-up").click();if(e.code==="ArrowDown"&&!inFeature)document.getElementById("btn-dn").click();});
+
+// ══════════════════════════════════════════════════════════════
+//  BASE GAME
+// ══════════════════════════════════════════════════════════════
+const BASE_REELS = [
+  // reel1 from Python script
+  [6,7,8,3,11,4,4,4,4,0,7,11,1,1,1,13,5,5,7,7,7,11,4,3,3,7,3,2,13,6,3,0,0,0,0,12,6,8,7,9,6,6,6,1,12,6,2,6,3,3,3,0,2,8,0,6,6,6,3,5,5,9,9,2,8,1,1,1,3,9,8,8,8,9,3,4,12,2,8,5,3,4,2,2,7,4,1,1,3,0,4,6,0,3,1,5,4,9,2,1,5,2,6,2,8,8,2,0,2,6,9,1,2,7,1,6,9,5,0,8,3,1,1,3,3,3,3,3,2,6,7,4,3,9,1,7,4,1,3,4,8,1,2,8,0,1,3,13,5,7,3,8,8,7,2,3,8,0,4,11,3,7,8,6,8,5,1,3,1,12,4,4,5,3,7,7,6,6,3,4,7,7,7,7,6,2,2,2,2,0,9,0,8,7,3,1,0,5,4,6,1,9,1,1,13,5,5,5,5,3,4,3,6,7,3,9,5,0,3,9,6,6,0,3,5,2,0,6,7,4,8,8,8,8,2,9,6,6,6,6,6,0,13,8,2,1,0,9,4,9,4,7,5,4,12,3,2,7,3,5,3,9,9,13,4,1,0,2,5,1,9,4,1,0,0,2,2,8,2,0,4,3,6,6,8,0,12,5,1,7,6,4,3,3,6,8,8,9,5,6,0,0,0,0,5,6,9,11,0,1,1,7,8,7,5,8,3,9,2,2,2,2,11,6,5,0,3,9,9,9,9,2,2,2,1,4,4,4,1,3,2,4,2,9,5,9,4,9,7],
+  // reel2-5 from Python script
+  [6,9,12,7,5,9,7,13,0,0,0,0,4,3,2,6,12,1,1,0,4,3,13,10,3,5,1,2,7,7,7,7,3,0,3,7,9,8,2,2,9,3,10,1,9,9,5,1,3,11,6,7,3,3,4,4,1,4,12,0,0,1,1,3,5,3,7,4,9,11,10,6,3,0,3,3,4,4,4,4,3,0,8,9,8,2,5,4,1,4,4,0,0,2,7,5,3,2,12,10,3,0,3,6,8,13,5,8,3,8,1,10,10,10,10,3,8,9,5,1,7,1,5,1,0,6,6,6,6,6,6,6,12,3,5,5,5,0,8,8,10,4,8,4,10,2,0,3,6,9,7,2,5,0,10,9,3,5,13,3,8,5,5,5,5,3,7,11,1,7,7,0,3,1,0,1,6,4,0,5,10,10,10,10,9,10,0,9,12,3,5,9,3,2,6,3,0,4,4,3,10,11,5,1,8,10,4,4,8,5,7,6,8,6,9,6,10,2,9,1,3,1,10,0,10,2,10,6,0,2,2,2,2,7,6,6,13,10,2,4,3,9,6,5,10,2,8,4,3,9,9,9,9,7,8,10,10,10,7,7,7,7,2,0,9,3,5,11,0,4,8,6,1,1,5,3,4,7,10,1,1,1,10,1,1,8,8,8,8,3,7,6,2,10,8,6,7,3,2,3,1,2,2,2,2,5,1,9,6,6,6,10,4,9,3,3,6,10,6,6,6,6,11,5,2,1,7,10,8,9,10,10,7,10,8,3,3,8,8,8,13,7,0,9,7,5,5,5,1],
+  [6,9,12,7,5,9,7,13,0,0,0,0,4,3,2,6,12,1,1,0,4,3,13,10,3,5,1,2,7,7,7,7,3,0,3,7,9,8,2,2,9,3,10,1,9,9,5,1,3,11,6,7,3,3,4,4,1,4,12,0,0,1,1,3,5,3,7,4,9,11,10,6,3,0,3,3,4,4,4,4,3,0,8,9,8,2,5,4,1,4,4,0,0,2,7,5,3,2,12,10,3,0,3,6,8,13,5,8,3,8,1,10,10,10,10,3,8,9,5,1,7,1,5,1,0,6,6,6,6,6,6,6,12,3,5,5,5,0,8,8,10,4,8,4,10,2,0,3,6,9,7,2,5,0,10,9,3,5,13,3,8,5,5,5,5,3,7,11,1,7,7,0,3,1,0,1,6,4,0,5,10,10,10,10,9,10,0,9,12,3,5,9,3,2,6,3,0,4,4,3,10,11,5,1,8,10,4,4,8,5,7,6,8,6,9,6,10,2,9,1,3,1,10,0,10,2,10,6,0,2,2,2,2,7,6,6,13,10,2,4,3,9,6,5,10,2,8,4,3,9,9,9,9,7,8,10,10,10,7,7,7,7,2,0,9,3,5,11,0,4,8,6,1,1,5,3,4,7,10,1,1,1,10,1,1,8,8,8,8,3,7,6,2,10,8,6,7,3,2,3,1,2,2,2,2,5,1,9,6,6,6,10,4,9,3,3,6,10,6,6,6,6,11,5,2,1,7,10,8,9,10,10,7,10,8,3,3,8,8,8,13,7,0,9,7,5,5,5,1],
+  [6,9,12,7,5,9,7,13,0,0,0,0,4,3,2,6,12,1,1,0,4,3,13,10,3,5,1,2,7,7,7,7,3,0,3,7,9,8,2,2,9,3,10,1,9,9,5,1,3,11,6,7,3,3,4,4,1,4,12,0,0,1,1,3,5,3,7,4,9,11,10,6,3,0,3,3,4,4,4,4,3,0,8,9,8,2,5,4,1,4,4,0,0,2,7,5,3,2,12,10,3,0,3,6,8,13,5,8,3,8,1,10,10,10,10,3,8,9,5,1,7,1,5,1,0,6,6,6,6,6,6,6,12,3,5,5,5,0,8,8,10,4,8,4,10,2,0,3,6,9,7,2,5,0,10,9,3,5,13,3,8,5,5,5,5,3,7,11,1,7,7,0,3,1,0,1,6,4,0,5,10,10,10,10,9,10,0,9,12,3,5,9,3,2,6,3,0,4,4,3,10,11,5,1,8,10,4,4,8,5,7,6,8,6,9,6,10,2,9,1,3,1,10,0,10,2,10,6,0,2,2,2,2,7,6,6,13,10,2,4,3,9,6,5,10,2,8,4,3,9,9,9,9,7,8,10,10,10,7,7,7,7,2,0,9,3,5,11,0,4,8,6,1,1,5,3,4,7,10,1,1,1,10,1,1,8,8,8,8,3,7,6,2,10,8,6,7,3,2,3,1,2,2,2,2,5,1,9,6,6,6,10,4,9,3,3,6,10,6,6,6,6,11,5,2,1,7,10,8,9,10,10,7,10,8,3,3,8,8,8,13,7,0,9,7,5,5,5,1],
+  [6,9,12,7,5,9,7,13,0,0,0,0,4,3,2,6,12,1,1,0,4,3,13,10,3,5,1,2,7,7,7,7,3,0,3,7,9,8,2,2,9,3,10,1,9,9,5,1,3,11,6,7,3,3,4,4,1,4,12,0,0,1,1,3,5,3,7,4,9,11,10,6,3,0,3,3,4,4,4,4,3,0,8,9,8,2,5,4,1,4,4,0,0,2,7,5,3,2,12,10,3,0,3,6,8,13,5,8,3,8,1,10,10,10,10,3,8,9,5,1,7,1,5,1,0,6,6,6,6,6,6,6,12,3,5,5,5,0,8,8,10,4,8,4,10,2,0,3,6,9,7,2,5,0,10,9,3,5,13,3,8,5,5,5,5,3,7,11,1,7,7,0,3,1,0,1,6,4,0,5,10,10,10,10,9,10,0,9,12,3,5,9,3,2,6,3,0,4,4,3,10,11,5,1,8,10,4,4,8,5,7,6,8,6,9,6,10,2,9,1,3,1,10,0,10,2,10,6,0,2,2,2,2,7,6,6,13,10,2,4,3,9,6,5,10,2,8,4,3,9,9,9,9,7,8,10,10,10,7,7,7,7,2,0,9,3,5,11,0,4,8,6,1,1,5,3,4,7,10,1,1,1,10,1,1,8,8,8,8,3,7,6,2,10,8,6,7,3,2,3,1,2,2,2,2,5,1,9,6,6,6,10,4,9,3,3,6,10,6,6,6,6,11,5,2,1,7,10,8,9,10,10,7,10,8,3,3,8,8,8,13,7,0,9,7,5,5,5,1]
+];
+
+const BASE_ROWS=3, BASE_COLS=5;
+const B_WILD=10, B_RED=11, B_GREEN=12, B_PURPLE=13;
+const BASE_PAYTABLE={0:{2:.11,3:.57,4:1.14,5:5.68},1:{3:.23,4:.57,5:2.84},2:{3:.23,4:.57,5:2.84},3:{3:.23,4:.57,5:2.27},4:{3:.23,4:.57,5:2.27},5:{3:.11,4:.23,5:1.70},6:{3:.11,4:.23,5:1.14},7:{3:.11,4:.23,5:1.14},8:{3:.11,4:.23,5:.57}};
+const BASE_PAYLINES=[[0,0,0,0,0],[1,1,1,1,1],[2,2,2,2,2],[2,1,0,1,2],[0,1,2,1,0],[1,0,0,0,1],[1,2,2,2,1],[0,0,1,2,2],[2,2,1,0,0],[1,0,1,2,1],[1,2,1,0,1],[0,1,1,1,0],[2,1,1,1,2],[0,1,0,1,0],[2,1,2,1,2],[1,1,0,1,1],[1,1,2,1,1],[0,0,2,0,0],[2,2,0,2,2],[2,0,0,0,2],[0,2,2,2,0],[1,0,2,0,1],[1,2,0,2,1],[0,2,0,2,0],[2,0,2,0,2]];
+
+// Feature probability knobs (from Python script)
+const P1_SINGLE=0.03;
+const P2_SINGLE_TOTAL=0.02, P2_DOUBLE=0.04;
+const P3_SINGLE_TOTAL=0.03, P3_DOUBLE_TOTAL=0.06, P3_TRIPLE=0.06;
+const PAY_1=23.75, PAY_2=47.5, PAY_3=142.5;
+
+const BASE_BETS=[1,2,5,10,20,50];
+let baseBetIdx=0, baseBalance=1000, baseSpins=0, baseSpinWin=0;
+let baseCells=[], baseCV, baseCTX, baseRunning=false;
+const BASE_CELL=68, BASE_GAP=5;
+
+const COIN_EMOJI={11:'🔴',12:'🟢',13:'🟣'};
+const COIN_NAME={11:'Jackpot',12:'Coin Boost',13:'Reel Boost'};
+const COIN_MODE={11:'jackpot',12:'coin',13:'reel'};
+const COIN_CLASS={11:'is-red-coin',12:'is-green-coin',13:'is-purple-coin'};
+const COIN_METER_ID={11:'cms-red',12:'cms-green',13:'cms-purple'};
+const COIN_METER_CARD={11:'cm-red',12:'cm-green',13:'cm-purple'};
+
+// Persistent cup state — survives between spins, resets on feature trigger
+const cupState={11:0, 12:0, 13:0}; // 0-6 slots filled per colour
+
+function advanceCup(coin){
+  // Each time this colour's coin appears: 0.7 chance to fill next slot
+  if(cupState[coin]<6 && Math.random()<0.85){
+    cupState[coin]++;
+    renderCup(coin);
+  }
+}
+
+function resetCup(coin){
+  cupState[coin]=0;
+  renderCup(coin);
+}
+
+function resetAllCups(){
+  [11,12,13].forEach(c=>resetCup(c));
+}
+
+function buildMeters(){
+  // SVG cups are static in HTML — nothing to build dynamically
+  // Just render current state
+  [11,12,13].forEach(c=>renderCup(c));
+}
+
+function renderCup(coin){
+  const count=cupState[coin]; // 0-6
+  const col={11:'red',12:'green',13:'purple'}[coin];
+  // Cup interior height = 84px (y:4 to y:88), full = y:4, empty = y:90 (below cup)
+  // Each of 6 slots = 14px height
+  const filled=count/6; // 0.0 to 1.0
+  const cupH=84; // total fillable height in SVG units
+  const liquidH=Math.round(filled*cupH);
+  const liquidY=88-liquidH; // rect starts here (88 = bottom of cup interior)
+
+  const rect=document.getElementById(`liq-rect-${col}`);
+  const wave=document.getElementById(`wave-${col}`);
+  if(rect){
+    rect.setAttribute('y', liquidY);
+    rect.setAttribute('height', liquidH+4); // +4 so bottom never gaps
+    rect.setAttribute('opacity', count>0?'1':'0');
+  }
+  if(wave){
+    // Move wave to liquid surface
+    wave.setAttribute('transform',`translate(0,${liquidY})`);
+    wave.setAttribute('opacity', count>0?'1':'0');
+    // Restart animation by removing and re-adding
+    wave.style.animationName='none';
+    void wave.getBoundingClientRect();
+    wave.style.animationName='';
+  }
+
+  // Highlight pay tier labels
+  [1,2,3].forEach((t,idx)=>{
+    const el=document.getElementById(`cpay-${col}-${t}`);
+    if(!el)return;
+    const tier=count<=2?0:count<=4?1:2;
+    const isActive=count>0&&idx===tier;
+    el.setAttribute('opacity', isActive?'1':'.45');
+    el.style.fontWeight=isActive?'900':'700';
+  });
+
+  // Glow card
+  const card=document.getElementById(COIN_METER_CARD[coin]);
+  if(card&&count>0){
+    card.classList.add('lighting');
+    clearTimeout(card._glowTimer);
+    card._glowTimer=setTimeout(()=>card.classList.remove('lighting'),800);
+  }
+
+  // Spawn a bubble when filling
+  if(count>0) spawnBubble(col, liquidY);
+}
+
+function spawnBubble(col, surfaceY){
+  const g=document.getElementById(`bubbles-${col}`);
+  if(!g)return;
+  const x=12+Math.random()*40;
+  const size=2+Math.random()*3;
+  const dur=1.2+Math.random()*.8;
+  const c={red:'rgba(255,180,180,.6)',green:'rgba(160,255,180,.6)',purple:'rgba(220,180,255,.6)'}[col];
+  const circ=document.createElementNS('http://www.w3.org/2000/svg','circle');
+  circ.setAttribute('cx',x); circ.setAttribute('cy',surfaceY+4);
+  circ.setAttribute('r',size); circ.setAttribute('fill',c);
+  circ.style.animation=`bubbleRise ${dur}s ease-out forwards`;
+  g.appendChild(circ);
+  setTimeout(()=>{ try{g.removeChild(circ);}catch(e){} }, dur*1000+100);
+}
+
+// ── BUILD METERS ──────────────────────────────────────────────
+
+
+// lightMeter and clearAllMeters replaced by cup system above
+// kept as no-ops for safety
+function lightMeter(){}
+function clearAllMeters(){}
+
+// ── BUILD GRID ────────────────────────────────────────────────
+function buildBaseGrid(){
+  const g=document.getElementById('base-grid');
+  g.innerHTML='';
+  g.style.gridTemplateColumns=`repeat(${BASE_COLS},${BASE_CELL}px)`;
+  g.style.gridTemplateRows=`repeat(${BASE_ROWS},${BASE_CELL}px)`;
+  g.style.gap=BASE_GAP+'px';
+  baseCells=[];
+  for(let r=0;r<BASE_ROWS;r++){
+    baseCells[r]=[];
+    for(let c=0;c<BASE_COLS;c++){
+      const d=document.createElement('div');
+      d.className='cell';
+      d.style.width=d.style.height=BASE_CELL+'px';
+      d.style.fontSize='clamp(1.3rem,2.8vw,1.8rem)';
+      d.textContent='?';
+      g.appendChild(d);
+      baseCells[r][c]=d;
+    }
+  }
+  const cv=document.getElementById('base-canvas');
+  const W=BASE_COLS*(BASE_CELL+BASE_GAP)-BASE_GAP;
+  const H=BASE_ROWS*(BASE_CELL+BASE_GAP)-BASE_GAP;
+  cv.width=W;cv.height=H;cv.style.width=W+'px';cv.style.height=H+'px';
+  baseCV=cv; baseCTX=cv.getContext('2d');
+}
+
+// ── SYMBOLS ───────────────────────────────────────────────────
+const BASE_EMOJI={0:'👘',1:'⚔️',2:'⛩️',3:'🐉',4:'🐟',5:'🅰️',6:'🎴',7:'👑',8:'🃏',9:'🔟',10:'⭐',11:'🔴',12:'🟢',13:'🟣'};
+
+function setBaseCell(r,c,sym,anim=false){
+  const el=baseCells[r][c];
+  el.className='cell';
+  el.textContent=BASE_EMOJI[sym]||sym;
+  if(sym===B_WILD)   el.classList.add('is-wild');
+  if(sym===B_RED)    el.classList.add(COIN_CLASS[11]);
+  if(sym===B_GREEN)  el.classList.add(COIN_CLASS[12]);
+  if(sym===B_PURPLE) el.classList.add(COIN_CLASS[13]);
+  if(anim){el.classList.add('landed');setTimeout(()=>el.classList.remove('landed'),300);}
+}
+
+// ── SAMPLE ────────────────────────────────────────────────────
+function sampleBaseWindow(){
+  const mat=Array.from({length:BASE_ROWS},()=>new Array(BASE_COLS).fill(0));
+  for(let c=0;c<BASE_COLS;c++){
+    const s=BASE_REELS[c],n=s.length,i=Math.floor(Math.random()*n);
+    for(let r=0;r<BASE_ROWS;r++) mat[r][c]=s[(i+r)%n];
+  }
+  return mat;
+}
+
+// ── EVAL LINES ────────────────────────────────────────────────
+function evalBaseLines(mat,bet){
+  const wins=[];
+  BASE_PAYLINES.forEach((pl,li)=>{
+    const sy=pl.map((row,col)=>mat[row][col]);
+    let base=null;
+    for(const s of sy){if(s!==B_WILD&&s in BASE_PAYTABLE){base=s;break;}}
+    if(base===null)return;
+    let cnt=0;for(const s of sy){if(s===base||s===B_WILD)cnt++;else break;}
+    const p=(BASE_PAYTABLE[base]||{})[cnt]||0;
+    if(p>0)wins.push({li,pl,base,cnt,win:p*bet});
+  });
+  return wins;
+}
+
+// ── COIN COUNT ────────────────────────────────────────────────
+function countCoinReels(mat){
+  // per Python: each reel column can show at most one coin colour
+  // count how many reels show each colour
+  const counts={11:0,12:0,13:0};
+  for(let c=0;c<BASE_COLS;c++){
+    let hasRed=false,hasGreen=false,hasPurple=false;
+    for(let r=0;r<BASE_ROWS;r++){
+      const s=mat[r][c];
+      if(s===B_RED)    hasRed=true;
+      if(s===B_GREEN)  hasGreen=true;
+      if(s===B_PURPLE) hasPurple=true;
+    }
+    if(hasRed)    counts[11]++;
+    if(hasGreen)  counts[12]++;
+    if(hasPurple) counts[13]++;
+  }
+  return counts;
+}
+
+// ── FEATURE RESOLUTION (matches Python exactly) ──────────────
+function resolveFeatureType(coloursPresent){
+  if(coloursPresent===0) return 0;
+  if(coloursPresent===1){
+    return Math.random()<P1_SINGLE?1:0;
+  }
+  if(coloursPresent===2){
+    const u=Math.random();
+    const noPay=1-P2_SINGLE_TOTAL-P2_DOUBLE;
+    if(u<noPay)return 0;
+    if(u<noPay+P2_SINGLE_TOTAL)return 1;
+    return 2;
+  }
+  // 3 colours
+  const u=Math.random();
+  const noPay=1-P3_SINGLE_TOTAL-P3_DOUBLE_TOTAL-P3_TRIPLE;
+  if(u<noPay)return 0;
+  if(u<noPay+P3_SINGLE_TOTAL)return 1;
+  if(u<noPay+P3_SINGLE_TOTAL+P3_DOUBLE_TOTAL)return 2;
+  return 3;
+}
+
+// ── PAYLINES DRAW ─────────────────────────────────────────────
+const BASE_PL_COL=["#ff4466","#00ffaa","#44aaff","#ffcc00","#cc44ff","#ff8800","#00ddff","#88ff00","#ff44cc","#44ffcc"];
+function drawBasePL(wins){
+  baseCTX.clearRect(0,0,baseCV.width,baseCV.height);
+  wins.forEach((w,i)=>{
+    const col=BASE_PL_COL[i%BASE_PL_COL.length];
+    [2.5,9].forEach((lw,ii)=>{
+      baseCTX.beginPath();baseCTX.strokeStyle=col;baseCTX.lineWidth=lw;baseCTX.globalAlpha=ii?.13:.82;
+      for(let c=0;c<BASE_COLS;c++){const x=c*(BASE_CELL+BASE_GAP)+BASE_CELL/2,y=w.pl[c]*(BASE_CELL+BASE_GAP)+BASE_CELL/2;c===0?baseCTX.moveTo(x,y):baseCTX.lineTo(x,y);}
+      baseCTX.stroke();
+    });
+    for(let c=0;c<w.cnt;c++){
+      const x=c*(BASE_CELL+BASE_GAP)+BASE_CELL/2,y=w.pl[c]*(BASE_CELL+BASE_GAP)+BASE_CELL/2;
+      baseCTX.beginPath();baseCTX.arc(x,y,5,0,Math.PI*2);baseCTX.fillStyle=col;baseCTX.globalAlpha=1;baseCTX.fill();
+      baseCTX.beginPath();baseCTX.arc(x,y,2.5,0,Math.PI*2);baseCTX.fillStyle='#fff';baseCTX.globalAlpha=.9;baseCTX.fill();
+    }
+  });
+  baseCTX.globalAlpha=1;
+}
+
+function flashBaseWins(wins){
+  const ws=new Set();
+  wins.forEach(w=>{for(let c=0;c<w.cnt;c++)ws.add(w.pl[c]+','+c);});
+  ws.forEach(k=>{const[r,c]=k.split(',').map(Number);baseCells[r][c].classList.add('win-flash');});
+}
+
+// ── UI HELPERS ────────────────────────────────────────────────
+function updateBaseUI(){
+  const bet=BASE_BETS[baseBetIdx];
+  ['base-hdr-bet','base-bet-val'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=bet;});
+  document.getElementById('bs-bal').textContent=baseBalance.toFixed(2);
+  document.getElementById('bs-win').textContent=baseSpinWin.toFixed(2);
+  document.getElementById('bs-spins').textContent=baseSpins;
+}
+
+function setBaseMsg(t,cls='idle'){
+  const el=document.getElementById('base-msg');el.textContent=t;el.className=cls;
+}
+
+const bsleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+// ── FEATURE TRIGGER MODAL ─────────────────────────────────────
+function showFeatureTrigger(featType, coinCounts){
+  return new Promise(resolve=>{
+    const bg=document.getElementById('feat-trigger-bg');
+    const modal=document.getElementById('feat-trigger-modal');
+
+    // Determine which coins triggered and payout
+    const colours=Object.entries(coinCounts).filter(([,v])=>v>0).map(([k])=>+k);
+    const pay=featType===1?PAY_1:featType===2?PAY_2:PAY_3;
+    const bet=BASE_BETS[baseBetIdx];
+
+    // Determine which feature to launch (most represented coin, or multi)
+    let launchMode='coin';
+    if(colours.length===1) launchMode=COIN_MODE[colours[0]];
+    else if(colours.length===2){
+      const sorted=colours.sort();
+      if(sorted[0]===11&&sorted[1]===12) launchMode='coin_jack';
+      else if(sorted[0]===11&&sorted[1]===13) launchMode='reel_jack';
+      else if(sorted[0]===12&&sorted[1]===13) launchMode='reel_coin';
+    } else { launchMode='mega'; }
+
+    // Icons
+    const icons={1:'🪙',2:'💰',3:'🏆'};
+    const tierName={1:'Single Pay',2:'Double Pay',3:'Triple Pay'};
+    const coinIcons=colours.map(c=>COIN_EMOJI[c]).join(' ');
+
+    document.getElementById('ftm-icon').textContent=icons[featType]||'🎰';
+    document.getElementById('ftm-title').textContent=tierName[featType]||'Feature!';
+    document.getElementById('ftm-sub').textContent=coinIcons+' '+colours.map(c=>COIN_NAME[c]).join(' + ');
+    document.getElementById('ftm-payout').textContent=`+${(pay*bet).toFixed(2)}`;
+    document.getElementById('ftm-payout').style.color=featType===3?'#f87171':featType===2?'#fbbf24':'#4ade80';
+    document.getElementById('ftm-desc').textContent=
+      `Collect ${(pay*bet).toFixed(2)} now, or launch the ${launchMode.replace('_',' ').toUpperCase()} feature free of charge for a chance at much more.`;
+
+    // Style modal border by tier
+    const borderCol=featType===3?'rgba(248,113,113,.6)':featType===2?'rgba(251,191,36,.6)':'rgba(74,222,128,.5)';
+    modal.style.borderColor=borderCol;
+    modal.style.boxShadow=`0 0 60px ${borderCol},0 20px 50px rgba(0,0,0,.9)`;
+
+    bg.classList.add('open');
+
+    const mode=MODES.find(m=>m.id===launchMode)||MODES[1];
+
+    document.getElementById('ftm-btn-play').onclick=()=>{
+      bg.classList.remove('open');
+      resetAllCups();
+      resolve({action:'play', mode, pay:0}); // feature is free
+    };
+    document.getElementById('ftm-btn-skip').onclick=()=>{
+      bg.classList.remove('open');
+      resetAllCups();
+      resolve({action:'skip', pay:pay*bet});
+    };
+  });
+}
+
+// ── SPIN ──────────────────────────────────────────────────────
+async function doBaseSpin(){
+  if(baseRunning)return;
+  const bet=BASE_BETS[baseBetIdx];
+  if(baseBalance<bet){setBaseMsg('Insufficient balance','info');return;}
+
+  baseRunning=true;
+  baseBalance-=bet; baseSpins++; baseSpinWin=0;
+  document.getElementById('btn-spin-base').disabled=true;
+  document.getElementById('base-btn-up').disabled=true;
+  document.getElementById('base-btn-dn').disabled=true;
+  setBaseMsg('Spinning…','info');
+  // cups persist — do NOT clear them here
+  baseCTX.clearRect(0,0,baseCV.width,baseCV.height);
+  for(let r=0;r<BASE_ROWS;r++)for(let c=0;c<BASE_COLS;c++)baseCells[r][c].classList.remove('win-flash');
+  updateBaseUI();
+
+  // Spin animation
+  const SP=[0,1,2,3,4,5,6,7,8];
+  let ticker=setInterval(()=>{
+    for(let r=0;r<BASE_ROWS;r++)for(let c=0;c<BASE_COLS;c++){
+      baseCells[r][c].textContent=BASE_EMOJI[SP[Math.floor(Math.random()*SP.length)]];
+      baseCells[r][c].className='cell spinning';
+    }
+  },80);
+  await bsleep(480);
+  clearInterval(ticker);
+
+  // Land reels col by col
+  const mat=sampleBaseWindow();
+  for(let c=0;c<BASE_COLS;c++){
+    await bsleep(55);
+    for(let r=0;r<BASE_ROWS;r++) setBaseCell(r,c,mat[r][c],true);
+  }
+  await bsleep(100);
+
+  // Line wins
+  const wins=evalBaseLines(mat,bet);
+  const lw=wins.reduce((a,w)=>a+w.win,0);
+  if(lw>0){
+    baseBalance+=lw; baseSpinWin+=lw;
+    flashBaseWins(wins); drawBasePL(wins);
+  }
+
+  // Count coin reels
+  const coinCounts=countCoinReels(mat);
+  const coloursPresent=Object.values(coinCounts).filter(v=>v>0).length;
+
+  // Advance cups cosmetically — 0.7 chance per reel showing that coin colour
+  Object.entries(coinCounts).forEach(([coin,count])=>{
+    if(count>0){
+      // Try to advance once per reel showing this coin
+      for(let i=0;i<count;i++) advanceCup(+coin);
+    }
+  });
+
+  // Resolve feature
+  const featType=resolveFeatureType(coloursPresent);
+
+  let msg='';
+  if(lw>0) msg=`Win +${lw.toFixed(2)}`;
+
+  updateBaseUI();
+
+  if(featType>0){
+    // Fill the cups for every coin colour that was active this spin
+    Object.entries(coinCounts).forEach(([coin,count])=>{
+      if(count>0){
+        cupState[+coin]=6;
+        renderCup(+coin);
+      }
+    });
+    await bsleep(500);
+    setBaseMsg(`🎉 FEATURE TRIGGERED!`,'feat');
+    await bsleep(400);
+    const result=await showFeatureTrigger(featType, coinCounts);
+    if(result.action==='skip'){
+      baseBalance+=result.pay; baseSpinWin+=result.pay;
+      setBaseMsg(`💰 Collected +${result.pay.toFixed(2)}`,'win');
+    } else if(result.action==='play'){
+      // launch feature game
+      document.getElementById('base-screen').classList.remove('active');
+      enterMode(result.mode);
+      baseRunning=false;
+      document.getElementById('btn-spin-base').disabled=false;
+      document.getElementById('base-btn-up').disabled=false;
+      document.getElementById('base-btn-dn').disabled=false;
+      return;
+    }
+  } else {
+    if(lw>0) setBaseMsg(msg,'win');
+    else if(coloursPresent>0) setBaseMsg(`${Object.entries(coinCounts).filter(([,v])=>v>0).map(([k])=>COIN_EMOJI[k]).join('')} No feature this time`,'info');
+    else setBaseMsg('No win','idle');
+  }
+
+  await bsleep(900);
+  baseCTX.clearRect(0,0,baseCV.width,baseCV.height);
+  for(let r=0;r<BASE_ROWS;r++)for(let c=0;c<BASE_COLS;c++)baseCells[r][c].classList.remove('win-flash');
+  updateBaseUI();
+  baseRunning=false;
+  document.getElementById('btn-spin-base').disabled=false;
+  document.getElementById('base-btn-up').disabled=false;
+  document.getElementById('base-btn-dn').disabled=false;
+}
+
+// ── BASE GAME CONTROLS ────────────────────────────────────────
+document.getElementById('btn-play-base').addEventListener('click',()=>{
+  document.getElementById('sel-screen').classList.remove('active');
+  document.getElementById('base-screen').classList.add('active');
+  buildBaseGrid(); buildMeters(); updateBaseUI();
+  // Render current cup state (persists between sessions)
+  [11,12,13].forEach(c=>renderCup(c));
+  setBaseMsg('Spin to collect coins and trigger features','idle');
+});
+
+document.getElementById('btn-base-back').addEventListener('click',()=>{
+  document.getElementById('base-screen').classList.remove('active');
+  document.getElementById('sel-screen').classList.add('active');
+});
+
+document.getElementById('btn-spin-base').addEventListener('click',doBaseSpin);
+
+document.getElementById('base-btn-up').addEventListener('click',()=>{
+  if(!baseRunning&&baseBetIdx<BASE_BETS.length-1){baseBetIdx++;updateBaseUI();}
+});
+document.getElementById('base-btn-dn').addEventListener('click',()=>{
+  if(!baseRunning&&baseBetIdx>0){baseBetIdx--;updateBaseUI();}
+});
+
+document.getElementById('btn-buy-base').addEventListener('click',()=>{
+  document.getElementById('base-screen').classList.remove('active');
+  document.getElementById('sel-screen').classList.add('active');
+});
+
+// When returning from feature back button, go back to base game
+const _origBack=document.getElementById('btn-back').onclick;
+document.getElementById('btn-back').addEventListener('click',()=>{
+  // if came from base game, go back there
+  if(document.getElementById('base-screen')){
+    document.getElementById('game-screen').classList.remove('active');
+    document.getElementById('base-screen').classList.add('active');
+    buildBaseGrid(); buildMeters(); updateBaseUI();
+  }
+});
+
 </script>
 </body>
 </html>
