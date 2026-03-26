@@ -521,7 +521,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:ra
         <div class="badge badge-spins">🎰 Spins: <span class="num" id="fs-count">—</span></div>
         <div class="badge badge-win">💰 Win: <span class="num" id="feat-win">0.00</span></div>
         <div class="badge badge-mult" id="mult-badge">⚡ Gold ×<span class="num" id="mult-val">2.00</span></div>
-        <div class="badge badge-bet" style="margin-left:auto">Bet: <strong id="bet-disp">1</strong></div>
+        <div class="badge badge-bet">Balance: <strong id="feat-balance">—</strong></div><div class="badge badge-bet" style="margin-left:auto">Bet: <strong id="bet-disp">1</strong></div>
       </div>
       <div class="dots-row" id="dots-row"></div>
       <div class="reel-window">
@@ -573,7 +573,6 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:ra
     <div id="ftm-payout">+23.75×</div>
     <div id="ftm-desc">Collect your payout or launch the full feature for the chance of much more.</div>
     <button class="ftm-btn" id="ftm-btn-play">🎰 LAUNCH FEATURE (FREE)</button>
-    <button class="ftm-btn" id="ftm-btn-skip">💰 TAKE PAYOUT &amp; CONTINUE</button>
   </div>
 </div>
 
@@ -694,8 +693,22 @@ document.getElementById("mode-grid").addEventListener("click",e=>{
 
 // STATE
 let G={},cells=[],CELL=66,GAP=7,plCv,plCtx,betIdx=0,inFeature=false;
-let fLine=0,fDirect=0,fJPs=[],fSpinsGained=0,fCost=0;
+let fLine=0,fDirect=0,fJPs=[],fSpinsGained=0,fCost=0,fFromBase=false;
 
+function buildJPMeters(){
+  // Build jackpot gem slots in the feature game screen
+  for(const[t,cfg]of Object.entries(JP_CFG)){
+    const co=document.getElementById("gems-"+t);
+    if(!co)continue;
+    co.innerHTML="";
+    for(let i=0;i<cfg.req;i++){
+      const s=document.createElement("div");
+      s.className=`gem-slot ${t}`;
+      s.id=`gem-${t}-${i}`;
+      co.appendChild(s);
+    }
+  }
+}
 function enterMode(m){
   G={mode:m,bet:BETS[betIdx],fs:0,sessWin:0,totalSp:0,sessN:0,goldMult:2,jpProg:{mini:0,minor:0,major:0,grand:0},running:false};
   document.getElementById("sel-screen").classList.remove("active");
@@ -703,11 +716,17 @@ function enterMode(m){
   document.getElementById("game-title").textContent=m.name.toUpperCase();
   document.getElementById("jp-row").style.display=m.hasJack?"":"none";
   document.getElementById("mult-badge").style.display=m.hasCoins?"":"none";
-  buildGrid();buildDots();buildMeters();updateUI();setMsg("Set your bet and buy the feature","idle");
+  buildGrid();buildDots();if(m.hasJack)buildJPMeters();updateUI();setMsg("Set your bet and buy the feature","idle");
 }
 document.getElementById("btn-back").addEventListener("click",()=>{
   document.getElementById("game-screen").classList.remove("active");
-  document.getElementById("sel-screen").classList.add("active");
+  if(fFromBase){
+    document.getElementById("base-screen").classList.add("active");
+    updateBaseUI();
+    fFromBase=false;
+  } else {
+    document.getElementById("sel-screen").classList.add("active");
+  }
   inFeature=false;
 });
 
@@ -749,12 +768,15 @@ function resetMeters(){for(const t of Object.keys(JP_CFG)){G.jpProg[t]=0;refresh
 function flashMeter(t){const el=document.getElementById(`jpm-${t}`);el.classList.add("winning");setTimeout(()=>el.classList.remove("winning"),2200);}
 
 function updateUI(){
+  // show base balance in feature screen if came from base
+  const fb=document.getElementById("feat-balance");
+  if(fb) fb.textContent=fFromBase?baseBalance.toFixed(2):"—";
   const cost=BETS[betIdx]*(G.mode?G.mode.buyCost:25);
   ["hdr-bet","bet-disp","bet-val"].forEach(id=>document.getElementById(id).textContent=BETS[betIdx]);
   document.getElementById("buy-cost").textContent=cost;
   document.getElementById("fs-count").textContent=inFeature?G.fs:"—";
-  document.getElementById("feat-win").textContent=G.sessWin.toFixed(2);
-  document.getElementById("mult-val").textContent=G.goldMult.toFixed(2);
+  document.getElementById("feat-win").textContent=(G.sessWin||0).toFixed(2);
+  document.getElementById("mult-val").textContent=(G.goldMult||2).toFixed(2);
 }
 function setMsg(t,cls="idle"){const el=document.getElementById("msg-bar");el.textContent=t;el.className=`msg-bar ${cls}`;}
 function pause(ms){return new Promise(r=>setTimeout(r,ms));}
@@ -857,13 +879,13 @@ async function processChest(num,total){
 function showSummary(){
   const tbl=document.getElementById("sm-table");tbl.innerHTML="";
   function row(lbl,val,vcls="",hl=false,jp=false){const tr=document.createElement("tr");if(hl)tr.className="hl";if(jp)tr.className="jpr";tr.innerHTML=`<td class="lbl">${lbl}</td><td class="val ${vcls}">${val}</td>`;tbl.appendChild(tr);}
-  row("Feature Cost",`−${fCost.toFixed(2)}`,"neg");
+  if(fFromBase) row("Origin","Earned from Base Game 🎰","pos"); else row("Feature Cost",`−${fCost.toFixed(2)}`,"neg");
   row("Free Spins",`${G.mode.startFS} base + ${fSpinsGained} bonus`);
   if(fLine>0)row("Line Wins",`+${fLine.toFixed(2)}`,"pos");
   if(fDirect>0)row("Chest Direct Pay",`+${fDirect.toFixed(2)}`,"pos");
   for(const jp of fJPs)row(`${JP_CFG[jp.tier].gem} ${jp.name} Jackpot`,`+${jp.amount.toFixed(0)}`,"jpv",false,true);
   row("Total Win",`+${G.sessWin.toFixed(2)}`,"gld",true);
-  const prof=G.sessWin-fCost,pd=document.getElementById("profit-disp");
+  const prof=fFromBase?G.sessWin:G.sessWin-fCost,pd=document.getElementById("profit-disp");
   pd.className="profit-disp "+(prof>0?"up":prof<0?"down":"even");
   pd.textContent=(prof>=0?"▲ +":"▼ ")+prof.toFixed(2)+" net";
   document.getElementById("summary-bg").classList.add("open");
@@ -925,15 +947,35 @@ function buyFeature(){
   if(inFeature)return;
   const cost=BETS[betIdx]*(G.mode.buyCost||25);
   G.bet=BETS[betIdx];G.fs=G.mode.startFS;G.sessWin=0;G.totalSp=0;G.sessN++;G.goldMult=2;
-  fLine=0;fDirect=0;fJPs=[];fSpinsGained=0;fCost=cost;
+  fLine=0;fDirect=0;fJPs=[];fSpinsGained=0;fCost=cost;fFromBase=false;
   resetMeters();updateUI();flash("rfl");runFeature();
+}
+function launchFromBase(mode, bet){
+  // Feature earned from base game — no cost, use base game bet
+  if(inFeature)return;
+  G.bet=bet; G.fs=mode.startFS; G.sessWin=0; G.totalSp=0; G.sessN++; G.goldMult=2;
+  fLine=0; fDirect=0; fJPs=[]; fSpinsGained=0; fCost=0; fFromBase=true;
+  resetMeters(); updateUI(); flash("gfl"); runFeature();
 }
 function setButtons(en){["btn-up","btn-dn","buy-btn"].forEach(id=>{document.getElementById(id).disabled=!en;});}
 
 document.getElementById("btn-up").onclick=()=>{if(!inFeature&&betIdx<BETS.length-1){betIdx++;updateUI();}};
 document.getElementById("btn-dn").onclick=()=>{if(!inFeature&&betIdx>0){betIdx--;updateUI();}};
 document.getElementById("buy-btn").onclick=()=>{if(!inFeature)buyFeature();};
-document.getElementById("play-again-btn").onclick=()=>{document.getElementById("summary-bg").classList.remove("open");setButtons(true);setMsg("Set your bet and buy the feature","idle");updateUI();};
+document.getElementById("play-again-btn").onclick=()=>{
+  document.getElementById("summary-bg").classList.remove("open");
+  if(fFromBase){
+    // Return to base game, add winnings to base balance
+    baseBalance+=G.sessWin;
+    document.getElementById("game-screen").classList.remove("active");
+    document.getElementById("base-screen").classList.add("active");
+    updateBaseUI();
+    setBaseMsg(`Feature done! +${G.sessWin.toFixed(2)} added to balance`,'win');
+    fFromBase=false;
+  } else {
+    setButtons(true);setMsg("Set your bet and buy the feature","idle");updateUI();
+  }
+};
 document.addEventListener("keydown",e=>{if(e.code==="Space"&&!inFeature){e.preventDefault();buyFeature();}if(e.code==="ArrowUp"&&!inFeature)document.getElementById("btn-up").click();if(e.code==="ArrowDown"&&!inFeature)document.getElementById("btn-dn").click();});
 
 // ══════════════════════════════════════════════════════════════
@@ -977,7 +1019,7 @@ const cupState={11:0, 12:0, 13:0}; // 0-6 slots filled per colour
 
 function advanceCup(coin){
   // Each time this colour's coin appears: 0.7 chance to fill next slot
-  if(cupState[coin]<6 && Math.random()<0.85){
+  if(cupState[coin]<6 && Math.random()<0.7){
     cupState[coin]++;
     renderCup(coin);
   }
@@ -1267,11 +1309,7 @@ function showFeatureTrigger(featType, coinCounts){
       resetAllCups();
       resolve({action:'play', mode, pay:0}); // feature is free
     };
-    document.getElementById('ftm-btn-skip').onclick=()=>{
-      bg.classList.remove('open');
-      resetAllCups();
-      resolve({action:'skip', pay:pay*bet});
-    };
+
   });
 }
 
@@ -1351,13 +1389,25 @@ async function doBaseSpin(){
     setBaseMsg(`🎉 FEATURE TRIGGERED!`,'feat');
     await bsleep(400);
     const result=await showFeatureTrigger(featType, coinCounts);
-    if(result.action==='skip'){
-      baseBalance+=result.pay; baseSpinWin+=result.pay;
-      setBaseMsg(`💰 Collected +${result.pay.toFixed(2)}`,'win');
-    } else if(result.action==='play'){
-      // launch feature game
+    if(result.action==='play'){
+      // Launch feature earned — no cost
+      inFeature=false; // ensure not blocked
       document.getElementById('base-screen').classList.remove('active');
-      enterMode(result.mode);
+      // Initialise G for this mode
+      G={mode:result.mode,bet:BASE_BETS[baseBetIdx],fs:result.mode.startFS,sessWin:0,totalSp:0,sessN:0,goldMult:2,jpProg:{mini:0,minor:0,major:0,grand:0},running:false};
+      document.getElementById("game-screen").classList.add("active");
+      document.getElementById("game-title").textContent=result.mode.name.toUpperCase();
+      document.getElementById("jp-row").style.display=result.mode.hasJack?"":"none";
+      document.getElementById("mult-badge").style.display=result.mode.hasCoins?"":"none";
+      buildGrid();buildDots();
+      if(result.mode.hasJack)buildJPMeters();
+      // Set fFromBase and cost before runFeature
+      fLine=0;fDirect=0;fJPs=[];fSpinsGained=0;fCost=0;fFromBase=true;
+      updateUI();
+      // Run feature directly (no buyFeature cost deduction)
+      inFeature=true;
+      setMsg("Feature running…","gold");
+      runFeature();
       baseRunning=false;
       document.getElementById('btn-spin-base').disabled=false;
       document.getElementById('base-btn-up').disabled=false;
@@ -1410,15 +1460,8 @@ document.getElementById('btn-buy-base').addEventListener('click',()=>{
 });
 
 // When returning from feature back button, go back to base game
-const _origBack=document.getElementById('btn-back').onclick;
-document.getElementById('btn-back').addEventListener('click',()=>{
-  // if came from base game, go back there
-  if(document.getElementById('base-screen')){
-    document.getElementById('game-screen').classList.remove('active');
-    document.getElementById('base-screen').classList.add('active');
-    buildBaseGrid(); buildMeters(); updateBaseUI();
-  }
-});
+
+// stale btn-back listener removed
 
 </script>
 </body>
