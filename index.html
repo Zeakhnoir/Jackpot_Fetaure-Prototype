@@ -1428,11 +1428,10 @@ async function doBaseSpin(){
   const coinCounts=countCoinReels(mat);
   const coloursPresent=Object.values(coinCounts).filter(v=>v>0).length;
 
-  // Advance cups cosmetically — 0.7 chance per reel showing that coin colour
+  // Advance cups cosmetically — once per colour per spin, regardless of how many reels show it
   Object.entries(coinCounts).forEach(([coin,count])=>{
     if(count>0){
-      // Try to advance once per reel showing this coin
-      for(let i=0;i<count;i++) advanceCup(+coin);
+      advanceCup(+coin);
     }
   });
 
