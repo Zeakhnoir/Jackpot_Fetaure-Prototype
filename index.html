@@ -1082,11 +1082,30 @@ const COIN_METER_ID={11:'cms-red',12:'cms-green',13:'cms-purple'};
 const COIN_METER_CARD={11:'cm-red',12:'cm-green',13:'cm-purple'};
 
 // Persistent cup state — survives between spins, resets on feature trigger
+// 7 total states (0 = empty, 6 = full) with 6 transitions between them.
 const cupState={11:0, 12:0, 13:0}; // 0-6 slots filled per colour
 
+// ── PERCEIVED-PERSISTENCE FILL WEIGHTS ────────────────────────
+// One probability per transition. Index = current cup state (the state we are
+// LEAVING). So CUP_FILL_PROBS[0] is the chance to go 0→1, [1] is 1→2 … [5] is 5→6.
+// Curve rationale: early fills are generous so the player sees fast visible
+// progress and feels "this cup is alive". Mid-range stays moderate. The final
+// step (5→6) is the rarest, so the cup hovers near-full and creates anticipation
+// without actually triggering the cosmetic-full state too often.
+const CUP_FILL_PROBS=[
+  0.60, // 0 → 1  (easy first drop — instant feedback)
+  0.52, // 1 → 2  (still flowing)
+  0.44, // 2 → 3  (slowing)
+  0.35, // 3 → 4  (mid-cup drag)
+  0.22, // 4 → 5  (close to brim, stalls)
+  0.06  // 5 → 6  (rare last drop — "almost there" tension)
+];
+
 function advanceCup(coin){
-  // Each time this colour's coin appears: 0.7 chance to fill next slot
-  if(cupState[coin]<6 && Math.random()<0.15){
+  const s=cupState[coin];
+  if(s>=6) return;                    // already full, no more transitions
+  const p=CUP_FILL_PROBS[s];          // dynamic probability for THIS transition
+  if(Math.random()<p){
     cupState[coin]++;
     renderCup(coin);
   }
